@@ -955,6 +955,10 @@ public:
         m_GameNewHellScale = newScale;
     }
     unsigned int GetGameNewHellScale() { return m_GameNewHellScale; }
+#else
+    unsigned int GetGameNewWorldSize() { return 864; }
+    unsigned int GetGameNewWorldSizeUseMoat() { return 1; }
+    unsigned int GetGameNewHellScale() { return 3; }
 #endif
     void SetResetNether(bool bResetNether) { m_bResetNether = bResetNether; }
     bool GetResetNether() { return m_bResetNether; }

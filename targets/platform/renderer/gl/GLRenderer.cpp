@@ -153,7 +153,6 @@
 #undef glStencilMask
 #define glStencilMask glad_glStencilMask
 
-
 #undef glCallLists
 #undef glFog
 #undef glLight
@@ -388,6 +387,26 @@ struct ShaderUniforms {
         glUniform1i(uTex1, 1);
     }
 } s_shader;
+
+static std::vector<GLuint> s_vbosToDelete;
+static std::mutex s_vbosToDeleteMtx;
+
+static void queueVboDeletion(GLuint vbo) {
+    if (!vbo) return;
+    std::lock_guard<std::mutex> lk(s_vbosToDeleteMtx);
+    s_vbosToDelete.push_back(vbo);
+}
+
+static void processPendingDeletions() {
+    std::vector<GLuint> toDelete;
+    {
+        std::lock_guard<std::mutex> lk(s_vbosToDeleteMtx);
+        if (s_vbosToDelete.empty()) return;
+        toDelete = std::move(s_vbosToDelete);
+        s_vbosToDelete.clear();
+    }
+    glDeleteBuffers((GLsizei)toDelete.size(), toDelete.data());
+}
 
 // Matrix stacks
 static const int STACK_DEPTH = 64;
@@ -668,7 +687,7 @@ static void pushRenderState() {
 }
 
 static GLuint s_sVBO_std = 0;
-static GLsizeiptr s_streamVBOSize = 0; 
+static GLsizeiptr s_streamVBOSize = 0;
 
 static void bindStdAttribs() {
     glEnableVertexAttribArray(0);
@@ -680,13 +699,11 @@ static void bindStdAttribs() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 32, (void*)12);
     glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, 32, (void*)20);
     glVertexAttribPointer(3, 3, GL_BYTE, GL_TRUE, 32, (void*)24);
-    //Changed IPointer to Pointer
-    glVertexAttribPointer(4, 2, GL_SHORT, GL_FALSE, 32, (void*)28); 
+    // Changed IPointer to Pointer
+    glVertexAttribPointer(4, 2, GL_SHORT, GL_FALSE, 32, (void*)28);
 }
 
-static void initStreamingVBOs() {
-    glGenBuffers(1, &s_sVBO_std);
-}
+static void initStreamingVBOs() { glGenBuffers(1, &s_sVBO_std); }
 
 // Chunk buffer pool (shared, protected by s_glCallMtx)
 struct ChunkDrawCall {
@@ -697,21 +714,24 @@ struct ChunkDrawCall {
 
 struct ChunkBuffer {
     GLuint vbo = 0;
-    // each chunks has its one VAO now
-    //GLuint vao = 0;
     std::vector<ChunkDrawCall> draws;
     std::vector<uint8_t> rawVerts;
     bool valid = false;
     bool vboReady = false;
+
     void destroy() {
         if (vbo) {
-            glDeleteBuffers(1, &vbo);
+            // Check if we are on the main thread
+            if (s_mainThreadSet &&
+                std::this_thread::get_id() == s_mainThreadId) {
+                glDeleteBuffers(1, &vbo);
+            } else {
+                // Background thread: safely defer the deletion to the main
+                // thread
+                queueVboDeletion(vbo);
+            }
             vbo = 0;
         }
-        //if (vao) {
-        //    glDeleteVertexArrays(1, &vao);
-        //    vao = 0;
-        //}
         draws.clear();
         rawVerts.clear();
         valid = false;
@@ -805,7 +825,6 @@ void GLRenderer::Initialise() {
         fprintf(stderr, "[4J_Render] ERROR: gladLoadGLLoader failed\n");
         return;
     }
-    
 
     while (glGetError() != GL_NO_ERROR);
     fprintf(stderr, "=== OPENGL CONTEXT INFO ===\n");
@@ -814,7 +833,7 @@ void GLRenderer::Initialise() {
     fprintf(stderr, "Version:  %s\n", glGetString(GL_VERSION));
     fprintf(stderr, "GLSL:     %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     fprintf(stderr, "===========================\n");
-    
+
     int fw, fh;
     SDL_GetWindowSize(s_window, &fw, &fh);
     onFramebufferResize(fw, fh);
@@ -840,22 +859,23 @@ void GLRenderer::Initialise() {
 
     SDL_GL_MakeCurrent(s_window, s_glContext);
     s_sharedCtxCount = 0;
-/*
-    for (int i = 0; i < MAX_SHARED_CTXS; i++) {
-        SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
-        SDL_Window* w = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED,
-                                         SDL_WINDOWPOS_UNDEFINED, 1, 1,
-                                         SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL);
-        if (!w) break;
-        SDL_GLContext ctx = SDL_GL_CreateContext(w);
-        if (!ctx) {
-            SDL_DestroyWindow(w);
-            break;
-        }
-        s_sharedWins[s_sharedCtxCount] = w;
-        s_sharedCtxs[s_sharedCtxCount] = ctx;
-        s_sharedCtxCount++;
-    }
+    /*
+     *   for (int i = 0; i < MAX_SHARED_CTXS; i++) {
+     *       SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
+     *       SDL_Window* w = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED,
+     *                                        SDL_WINDOWPOS_UNDEFINED, 1, 1,
+     *                                        SDL_WINDOW_HIDDEN |
+SDL_WINDOW_OPENGL);
+     *       if (!w) break;
+     *       SDL_GLContext ctx = SDL_GL_CreateContext(w);
+     *       if (!ctx) {
+     *           SDL_DestroyWindow(w);
+     *           break;
+}
+s_sharedWins[s_sharedCtxCount] = w;
+s_sharedCtxs[s_sharedCtxCount] = ctx;
+s_sharedCtxCount++;
+}
 */
     SDL_GL_MakeCurrent(s_window, s_glContext);
     pushRenderState();
@@ -902,6 +922,8 @@ void GLRenderer::InitialiseContext() {
 }
 
 void GLRenderer::StartFrame() {
+    processPendingDeletions();
+
     Set_matrixDirty();
     int w, h;
     SDL_GetWindowSize(s_window, &w, &h);
@@ -949,7 +971,7 @@ void GLRenderer::Shutdown() {
         for (auto& kv : s_chunkPool) kv.second.destroy();
         s_chunkPool.clear();
     }
-    //glDeleteVertexArrays(1, &s_sVAO_std);
+    // glDeleteVertexArrays(1, &s_sVAO_std);
     glDeleteBuffers(1, &s_sVBO_std);
     if (s_shader.prog) glDeleteProgram(s_shader.prog);
     if (s_glContext) {
@@ -1166,7 +1188,7 @@ bool GLRenderer::CBuffCall(int index, bool) {
 
     // Draw phase
     glBindBuffer(GL_ARRAY_BUFFER, cb.vbo);
-    bindStdAttribs(); // Bind attributes right before drawing
+    bindStdAttribs();  // Bind attributes right before drawing
 
     for (const auto& dc : cb.draws) glDrawArrays(dc.prim, dc.first, dc.count);
 
@@ -1462,28 +1484,30 @@ void GLRenderer::TextureBindVertex(int idx, bool scaleLight) {
     }
 }
 void GLRenderer::TextureSetTextureLevels(int l) {
-    // GL_TEXTURE_MAX_LEVEL is not supported in GLES 2.0. 
+    // GL_TEXTURE_MAX_LEVEL is not supported in GLES 2.0.
     // We only need to toggle the min filter to enable/disable mipmapping.
     if (l > 1)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                        GL_NEAREST_MIPMAP_LINEAR);
     else
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 int GLRenderer::TextureGetTextureLevels() { return 1; }
 
-bool isPowerOfTwo(int n) {
-    return (n > 0 && (n & (n - 1)) == 0);
-}
+bool isPowerOfTwo(int n) { return (n > 0 && (n & (n - 1)) == 0); }
 
-void GLRenderer::TextureData(int w, int h, void* d, int lvl, eTextureFormat format) {
-    glTexImage2D(GL_TEXTURE_2D, lvl, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, d);
-    
+void GLRenderer::TextureData(int w, int h, void* d, int lvl,
+                             eTextureFormat format) {
+    glTexImage2D(GL_TEXTURE_2D, lvl, GL_RGBA, w, h, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, d);
+
     if (lvl == 0) {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
         if (isPowerOfTwo(w) && isPowerOfTwo(h)) {
             glGenerateMipmap(GL_TEXTURE_2D);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                            GL_NEAREST_MIPMAP_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         } else {

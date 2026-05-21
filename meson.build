@@ -36,7 +36,7 @@ cc = meson.get_compiler('cpp')
 global_cpp_args = []
 global_cpp_defs = [
     '-DSPLIT_SAVES',
-    '-D_LARGE_WORLDS',
+#    '-D_LARGE_WORLDS',
     '-D_EXTENDED_ACHIEVEMENTS',
     '-DMULTITHREAD_ENABLE',  # always-on threading flag (formerly in App_Defines.h)
 ]

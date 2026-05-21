@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 
+#include <atomic>
 #include <format>
 #include <memory>
 #include <mutex>
@@ -10,7 +11,6 @@
 #include "minecraft/util/SmoothFloat.h"
 #include "minecraft/world/phys/Vec3.h"
 #include "platform/thread/C4JThread.h"
-
 class Minecraft;
 class Entity;
 class Random;
@@ -75,8 +75,8 @@ private:
     // 4J - changes brought forward from 1.8.2
     static const int NUM_LIGHT_TEXTURES = 4;  // * 3;
     int lightTexture[NUM_LIGHT_TEXTURES];  // 4J - changed so that we have one
-                                           // lightTexture per level, to support
-                                           // split screen
+    // lightTexture per level, to support
+    // split screen
     int getLightTexture(int iPad, Level* level);  // 4J added
     std::vector<int> lightPixels[NUM_LIGHT_TEXTURES];
 
@@ -195,8 +195,8 @@ public:
         eUpdateEventIsFinished,
         eUpdateEventCount,
     };
-    static bool nearThingsToDo;
-    static bool updateRunning;
+    static std::atomic<bool> nearThingsToDo;
+    static std::atomic<bool> updateRunning;
 #endif
     static std::vector<uint8_t*> m_deleteStackByte;
     static std::vector<SparseLightStorage*> m_deleteStackSparseLightStorage;

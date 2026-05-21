@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "Options.h"
 
 #include "KeyMapping.h"
@@ -364,6 +366,56 @@ std::string Options::getMessage(const Options::Option* item) {
 }
 
 void Options::load() {
+    if (!optionsFile.exists()) return;
+
+    std::ifstream ifs(optionsFile.getPath());
+    if (!ifs.is_open()) {
+        Log::info("Failed to open options.txt for reading");
+        return;
+    }
+
+    std::string line;
+    while (std::getline(ifs, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+
+        size_t splitpos = line.find(':');
+        if (splitpos == std::string::npos) continue;
+
+        std::string key = line.substr(0, splitpos);
+        std::string val = line.substr(splitpos + 1);
+
+        if (key == "music") music = readFloat(val);
+        else if (key == "sound") sound = readFloat(val);
+        else if (key == "mouseSensitivity") sensitivity = readFloat(val);
+        else if (key == "fov") fov = readFloat(val);
+        else if (key == "gamma") gamma = readFloat(val);
+        else if (key == "invertYMouse") invertYMouse = (val == "true");
+        else if (key == "viewDistance") viewDistance = fromWString<int>(val);
+        else if (key == "guiScale") guiScale = fromWString<int>(val);
+        else if (key == "particles") particles = fromWString<int>(val);
+        else if (key == "bobView") bobView = (val == "true");
+        else if (key == "anaglyph3d") anaglyph3d = (val == "true");
+        else if (key == "advancedOpengl") advancedOpengl = (val == "true");
+        else if (key == "fpsLimit") framerateLimit = fromWString<int>(val);
+        else if (key == "difficulty") difficulty = fromWString<int>(val);
+        else if (key == "fancyGraphics") fancyGraphics = (val == "true");
+        else if (key == "ao") ambientOcclusion = (val == "true");
+        else if (key == "clouds") renderClouds = (val == "true");
+        else if (key == "skin") skin = val;
+        else if (key == "lastServer") lastMpIp = val;
+
+        for (int i = 0; i < keyMappings_length; i++) {
+            if (key == ("key_" + keyMappings[i]->name)) {
+                keyMappings[i]->key = fromWString<int>(val);
+            }
+        }
+    }
+    ifs.close();
+}
+/* kept for reference
+void Options::load() {
     // 4J - removed try/catch
     //    try {
     if (!optionsFile.exists()) return;
@@ -385,7 +437,8 @@ void Options::load() {
             cmds[1] = "";
         } else {
             cmds[0] = line.substr(0, splitpos);
-            cmds[1] = line.substr(splitpos, line.length() - splitpos);
+            cmds[1] = line.substr(splitpos + 1);
+            //cmds[1] = line.substr(splitpos, line.length() - splitpos);
         }
 
         if (cmds[0] == "music") music = readFloat(cmds[1]);
@@ -424,6 +477,7 @@ void Options::load() {
     //        e.printStackTrace();
     //    }
 }
+*/
 
 float Options::readFloat(std::string string) {
     if (string == "true") return 1;
@@ -431,6 +485,41 @@ float Options::readFloat(std::string string) {
     return fromWString<float>(string);
 }
 
+void Options::save() {
+    std::ofstream ofs(optionsFile.getPath());
+    if (!ofs.is_open()) {
+        Log::info("Failed to open options.txt for writing");
+        return;
+    }
+
+    ofs << "music:" << music << "\n";
+    ofs << "sound:" << sound << "\n";
+    ofs << "invertYMouse:" << (invertYMouse ? "true" : "false") << "\n";
+    ofs << "mouseSensitivity:" << sensitivity << "\n";
+    ofs << "fov:" << fov << "\n";
+    ofs << "gamma:" << gamma << "\n";
+    ofs << "viewDistance:" << viewDistance << "\n";
+    ofs << "guiScale:" << guiScale << "\n";
+    ofs << "particles:" << particles << "\n";
+    ofs << "bobView:" << (bobView ? "true" : "false") << "\n";
+    ofs << "anaglyph3d:" << (anaglyph3d ? "true" : "false") << "\n";
+    ofs << "advancedOpengl:" << (advancedOpengl ? "true" : "false") << "\n";
+    ofs << "fpsLimit:" << framerateLimit << "\n";
+    ofs << "difficulty:" << difficulty << "\n";
+    ofs << "fancyGraphics:" << (fancyGraphics ? "true" : "false") << "\n";
+    ofs << "ao:" << (ambientOcclusion ? "true" : "false") << "\n";
+    ofs << "clouds:" << (renderClouds ? "true" : "false") << "\n";
+    ofs << "skin:" << skin << "\n";
+    ofs << "lastServer:" << lastMpIp << "\n";
+
+    for (int i = 0; i < keyMappings_length; i++) {
+        ofs << "key_" << keyMappings[i]->name << ":" << keyMappings[i]->key << "\n";
+    }
+
+    ofs.close();
+}
+
+/* kept for reference
 void Options::save() {
     // 4J - try/catch removed
     //    try {
@@ -475,5 +564,6 @@ void Options::save() {
     //        e.printStackTrace();
     //    }
 }
+*/
 
 bool Options::isCloudsOn() { return viewDistance < 2 && renderClouds; }

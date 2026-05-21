@@ -402,6 +402,7 @@ void Minecraft::init() {
     levelSource = new McRegionLevelStorageSource(getSavesDirectory());
 
     options = new Options(this, workingDirectory);
+    options->load();
     skins = new TexturePackRepository(workingDirectory, this);
     skins->addDebugPacks();
     textures = new Textures(skins, options);

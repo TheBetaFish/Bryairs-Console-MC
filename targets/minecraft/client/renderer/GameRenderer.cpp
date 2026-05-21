@@ -88,8 +88,8 @@ int GameRenderer::anaglyphPass = 0;
 #if defined(MULTITHREAD_ENABLE)
 C4JThread* GameRenderer::m_updateThread;
 C4JThread::EventArray* GameRenderer::m_updateEvents;
-bool GameRenderer::nearThingsToDo = false;
-bool GameRenderer::updateRunning = false;
+std::atomic<bool> GameRenderer::nearThingsToDo = false;
+std::atomic<bool> GameRenderer::updateRunning = false;
 std::vector<uint8_t*> GameRenderer::m_deleteStackByte;
 std::vector<SparseLightStorage*> GameRenderer::m_deleteStackSparseLightStorage;
 std::vector<CompressedTileStorage*>
@@ -195,7 +195,7 @@ GameRenderer::GameRenderer(Minecraft* mc) {
     for (int i = 0; i < NUM_LIGHT_TEXTURES; i++) {
         lightTexture[i] =
             mc->textures->getTexture(img);  // 4J - changed to one light texture
-                                            // per level to support split screen
+        // per level to support split screen
     }
     delete img;
     for (int i = 0; i < NUM_LIGHT_TEXTURES; i++)
@@ -273,7 +273,7 @@ void GameRenderer::tick(bool first)  // 4J - add bFirst
 
     if (mc->player != mc->localplayers[PlatformInput.GetPrimaryPad()])
         return;  // 4J added for split screen - only do rest of processing for
-                 // once per frame
+    // once per frame
 
     _tick++;
 }
@@ -1023,7 +1023,7 @@ int GameRenderer::getLightTexture(int iPad, Level* level) {
     // if( idx == -1 ) idx = 2;
 
     return lightTexture[iPad];  // 4J-JEV: Changing to Per Player lighting
-                                // textures.
+    // textures.
 }
 
 void GameRenderer::render(float a, bool bFirst) {
@@ -1090,7 +1090,6 @@ void GameRenderer::render(float a, bool bFirst) {
 void GameRenderer::renderLevel(float a) { renderLevel(a, 0); }
 
 #if defined(MULTITHREAD_ENABLE)
-// Request that an item be deleted, when it is safe to do so
 void GameRenderer::AddForDelete(uint8_t* deleteThis) {
     m_csDeleteStack.lock();
     m_deleteStackByte.push_back(deleteThis);
@@ -1137,7 +1136,9 @@ int GameRenderer::runUpdate(void* lpParam) {
             break;
         }
 
-        m_updateEvents->set(eUpdateCanRun);
+        if (updateRunning) {
+            m_updateEvents->set(eUpdateCanRun);
+        }
 
         // Update chunks atomically until there aren't any very near ones left -
         // they will be deferred for rendering until the call to
@@ -1188,6 +1189,10 @@ int GameRenderer::runUpdate(void* lpParam) {
         //
 
         m_updateEvents->set(eUpdateEventIsFinished);
+
+        if (!shouldContinue && count <= 1) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
     }
 
     ShutdownManager::HasFinished(ShutdownManager::eRenderChunkUpdateThread);
@@ -1196,9 +1201,9 @@ int GameRenderer::runUpdate(void* lpParam) {
 #endif
 
 void GameRenderer::EnableUpdateThread() {
-    // #if 0 // MGH - disable the update on PS3 for now
-    // 	return;
-    // #endif
+// #if 0 // MGH - disable the update on PS3 for now
+// 	return;
+// #endif
 #if defined(MULTITHREAD_ENABLE)
     if (updateRunning) return;
     Log::info("------------------EnableUpdateThread--------------------\n");
@@ -1209,9 +1214,9 @@ void GameRenderer::EnableUpdateThread() {
 }
 
 void GameRenderer::DisableUpdateThread() {
-    // #if 0 // MGH - disable the update on PS3 for now
-    // 	return;
-    // #endif
+// #if 0 // MGH - disable the update on PS3 for now
+// 	return;
+// #endif
 #if defined(MULTITHREAD_ENABLE)
     if (!updateRunning) return;
     Log::info("------------------DisableUpdateThread--------------------\n");
@@ -1330,9 +1335,9 @@ void GameRenderer::renderLevel(float a, int64_t until) {
             prepareAndRenderClouds(levelRenderer, a);
         }
         Frustum::getFrustum();  // 4J added - re-calculate frustum as rendering
-                                // the clouds does a scale & recalculates one
-                                // that isn't any good for the rest of the level
-                                // rendering
+        // the clouds does a scale & recalculates one
+        // that isn't any good for the rest of the level
+        // rendering
 
         setupFog(0, a);
         glEnable(GL_FOG);
@@ -1427,8 +1432,8 @@ void GameRenderer::renderLevel(float a, int64_t until) {
                 levelRenderer->render(
                     cameraEntity, 1, a,
                     updateChunks);  // 4J - chanaged, used to be
-                                    // renderSameAsLast but we don't support
-                                    // that anymore
+                // renderSameAsLast but we don't support
+                // that anymore
             }
 
             glad_glShadeModel(GL_FLAT);
@@ -1474,10 +1479,10 @@ void GameRenderer::renderLevel(float a, int64_t until) {
         }
 
         /* 4J - moved rain rendering to after clouds so that it alpha blends
-        onto them properly         renderSnowAndRain(a);
-
-        glDisable(GL_FOG);
-        */
+         *       onto them properly         renderSnowAndRain(a);
+         *
+         *       glDisable(GL_FOG);
+         */
 
         glEnable(GL_BLEND);
         PlatformRenderer.StateSetBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -1956,7 +1961,7 @@ void GameRenderer::setupClearColor(float a) {
     double yy =
         (player->yOld + (player->y - player->yOld) * a) *
         level->dimension->getClearColorScale();  // 4J - getClearColorScale
-                                                 // brought forward from 1.2.3
+    // brought forward from 1.2.3
 
     if (player->hasEffect(MobEffect::blindness)) {
         int duration = player->getEffect(MobEffect::blindness)->getDuration();
@@ -2029,18 +2034,18 @@ void GameRenderer::setupFog(int i, float alpha) {
         assert(0);
         // 4J TODO
         /*
-        glFog(GL_FOG_COLOR, getBuffer(0, 0, 0, 1));
-        glFogi(GL_FOG_MODE, GL_LINEAR);
-        glFogf(GL_FOG_START, 0);
-        glFogf(GL_FOG_END, 8);
+         *       glFog(GL_FOG_COLOR, getBuffer(0, 0, 0, 1));
+         *       glFogi(GL_FOG_MODE, GL_LINEAR);
+         *       glFogf(GL_FOG_START, 0);
+         *       glFogf(GL_FOG_END, 8);
+         *
+         *       if (GLContext.getCapabilities().GL_NV_fog_distance) {
+         *       glFogi(NVFogDistance.GL_FOG_DISTANCE_MODE_NV,
+         *       NVFogDistance.GL_EYE_RADIAL_NV);
+    }
 
-        if (GLContext.getCapabilities().GL_NV_fog_distance) {
-        glFogi(NVFogDistance.GL_FOG_DISTANCE_MODE_NV,
-        NVFogDistance.GL_EYE_RADIAL_NV);
-        }
-
-        glFogf(GL_FOG_START, 0);
-        */
+    glFogf(GL_FOG_START, 0);
+    */
         return;
     }
 
@@ -2117,12 +2122,12 @@ void GameRenderer::setupFog(int i, float alpha) {
             glFogf(GL_FOG_END, distance);
         }
         /* 4J - removed - TODO investigate
-        if (GLContext.getCapabilities().GL_NV_fog_distance)
-        {
-        glFogi(NVFogDistance.GL_FOG_DISTANCE_MODE_NV,
-        NVFogDistance.GL_EYE_RADIAL_NV);
-        }
-        */
+         *       if (GLContext.getCapabilities().GL_NV_fog_distance)
+         *       {
+         *       glFogi(NVFogDistance.GL_FOG_DISTANCE_MODE_NV,
+         *       NVFogDistance.GL_EYE_RADIAL_NV);
+    }
+    */
 
         if (mc->level->dimension->isFoggyAt((int)player->x, (int)player->z)) {
             glFogf(GL_FOG_START, distance * 0.05f);
