@@ -1133,8 +1133,8 @@ void MinecraftServer::run(int64_t seed, void* lpParameter) {
             // if(m_isServerPaused) lastTime = now;
 
             int64_t passedTime = now - lastTime;
-            if (passedTime > MS_PER_TICK * 3) {
-                passedTime = MS_PER_TICK * 3;
+            if (passedTime > MS_PER_TICK * 40) {
+                passedTime = MS_PER_TICK * 40;
             }
             //if (passedTime > MS_PER_TICK * 40) {
             //    //                logger.warning("Can't keep up! Did the system
