@@ -25,8 +25,8 @@ void main() {
     
     if (uUseLightmap != 0) c.rgb *= texture2D(uTex1, vUV1).rgb;
     if (uFogEnable != 0) c.rgb = mix(uFogColor.rgb, c.rgb, vFogFactor);
-
-    c.rgb = pow(max(c.rgb, 0.0), vec3(2.2)); 
+    c.rgb = pow(c.rgb, vec3(uInvGamma));
+    //c.rgb = pow(max(c.rgb, 0.0), vec3(2.2));
 
     gl_FragColor = c;
 }

@@ -81,7 +81,7 @@ private:
     static constexpr std::size_t MAX_SAVE_SIZE =
         512u * 1024u * 1024u; // 512MB
 #else
-    static constexpr std::size_t MAX_SAVE_SIZE = 64u * 1024u * 1024u;  // 64MB
+    static constexpr std::size_t MAX_SAVE_SIZE = 256u * 1024u * 1024u;  // 256MB
 #endif
     std::vector<std::uint8_t> saveBuffer;
     void* pvSaveMem = saveBuffer.data();
