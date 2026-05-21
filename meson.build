@@ -33,20 +33,7 @@ python = pymod.find_installation('python3', required: true)
 
 cc = meson.get_compiler('cpp')
 
-global_cpp_args = cc.get_supported_arguments([
-    '-ffp-contract=off',
-    '-mno-fused-madd',
-    '-fno-fast-math',
-    '-frounding-math'
-])
-
-global_c_args = cc.get_supported_arguments([
-    '-ffp-contract=off',
-    '-mno-fused-madd',
-    '-fno-fast-math',
-    '-frounding-math'
-])
-
+global_cpp_args = []
 global_cpp_defs = [
     '-DSPLIT_SAVES',
 #    '-D_LARGE_WORLDS',
@@ -106,7 +93,6 @@ endif
 
 add_project_arguments(global_cpp_defs, language: ['cpp', 'c'])
 add_project_arguments(global_cpp_args, language: 'cpp')
-add_project_arguments(global_c_args, language: 'c')
 
 glad_dep = subproject('glad').get_variable('glad_dep')
 
