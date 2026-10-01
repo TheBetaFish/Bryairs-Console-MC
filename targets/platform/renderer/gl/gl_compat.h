@@ -495,14 +495,18 @@
             PlatformRenderer.StateSetLightEnable(0, true);              \
         else if ((cap) == 0x4001 /*GL_LIGHT1*/)                         \
             PlatformRenderer.StateSetLightEnable(1, true);              \
-        else if ((cap) == 0x0B57    /*GL_COLOR_MATERIAL*/               \
-                 || (cap) == 0x0BA1 /*GL_NORMALIZE*/                    \
-                 || (cap) == 0x803A /*GL_RESCALE_NORMAL*/               \
-                 || (cap) == 0x0C60 /*GL_TEXTURE_GEN_S*/                \
-                 || (cap) == 0x0C61 /*GL_TEXTURE_GEN_T*/                \
-                 || (cap) == 0x0C62 /*GL_TEXTURE_GEN_R*/                \
-                 || (cap) == 0x0C63 /*GL_TEXTURE_GEN_Q*/) { /* empty */ \
-        } else                                                          \
+        else if ((cap) == 0x0C60 /*GL_S*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2000 /*GL_S*/, true);   \
+        else if ((cap) == 0x0C61 /*GL_T*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2001 /*GL_T*/, true);   \
+        else if ((cap) == 0x0C62 /*GL_R*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2002 /*GL_R*/, true);   \
+        else if ((cap) == 0x0C63 /*GL_Q*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2003 /*GL_Q*/, true);   \
+        else if ((cap) == 0x0B57    /*GL_COLOR_MATERIAL*/                   \
+                 || (cap) == 0x0BA1 /*GL_NORMALIZE*/                        \
+                 || (cap) == 0x803A /*GL_RESCALE_NORMAL*/) { /* empty */     \
+        } else                                                              \
             glad_glEnable(cap);                                           \
     } while (0)
 
@@ -527,14 +531,18 @@
             PlatformRenderer.StateSetLightEnable(0, false);             \
         else if ((cap) == 0x4001 /*GL_LIGHT1*/)                         \
             PlatformRenderer.StateSetLightEnable(1, false);             \
-        else if ((cap) == 0x0B57    /*GL_COLOR_MATERIAL*/               \
-                 || (cap) == 0x0BA1 /*GL_NORMALIZE*/                    \
-                 || (cap) == 0x803A /*GL_RESCALE_NORMAL*/               \
-                 || (cap) == 0x0C60 /*GL_TEXTURE_GEN_S*/                \
-                 || (cap) == 0x0C61 /*GL_TEXTURE_GEN_T*/                \
-                 || (cap) == 0x0C62 /*GL_TEXTURE_GEN_R*/                \
-                 || (cap) == 0x0C63 /*GL_TEXTURE_GEN_Q*/) { /* empty */ \
-        } else                                                          \
+        else if ((cap) == 0x0C60 /*GL_S*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2000 /*GL_S*/, false);   \
+        else if ((cap) == 0x0C61 /*GL_T*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2001 /*GL_T*/, false);   \
+        else if ((cap) == 0x0C62 /*GL_R*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2002 /*GL_R*/, false);   \
+        else if ((cap) == 0x0C63 /*GL_Q*/)                      \
+            PlatformRenderer.StateSetTexGenEnable(0x2003 /*GL_Q*/, false);   \
+        else if ((cap) == 0x0B57    /*GL_COLOR_MATERIAL*/                   \
+                 || (cap) == 0x0BA1 /*GL_NORMALIZE*/                        \
+                 || (cap) == 0x803A /*GL_RESCALE_NORMAL*/) { /* empty */     \
+        } else                                                              \
             glad_glDisable(cap);                                           \
     } while (0)
 
@@ -655,7 +663,14 @@ inline void glLightModel_4J(int pname, T* params) {
         PlatformRenderer.StateSetLightAmbientColour(p[0], p[1], p[2]);
 }
 template <typename T>
-inline void glTexGen_4J(int coord, int pname, T* params) {}
+inline void glTexGen_4J(int coord, int pname, T* params) {
+    if (pname != 0x2501 /*GL_OBJECT_PLANE*/ && pname != 0x2502 /*GL_EYE_PLANE*/)
+        return;
+    float* p = params->_getDataPointer();
+    PlatformRenderer.StateSetTexGenCol(
+        coord, p[0], p[1], p[2], p[3],
+        pname == 0x2502 /*GL_EYE_PLANE*/);
+}
 inline void glReadPixels_4J(int x, int y, int width, int height, int format,
                             int type, void* pixels) {
     glReadPixels(x, y, width, height, (unsigned int)format,

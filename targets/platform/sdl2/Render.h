@@ -129,6 +129,8 @@ public:
     void StateSetEnableViewportClipPlanes(bool enable);
     void StateSetTexGenCol(int col, float x, float y, float z, float w,
                            bool eyeSpace);
+    void StateSetTexGenEnable(int coord, bool enable);
+    void StateSetShadeModel(int mode);
     void StateSetStencil(int Function, std::uint8_t stencil_ref,
                          std::uint8_t stencil_func_mask,
                          std::uint8_t stencil_write_mask);

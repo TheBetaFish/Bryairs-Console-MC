@@ -12,6 +12,7 @@
 #include <SDL_video.h>
 
 #include <cstdio>
+#include <cstring>
 
 #ifndef GL_ARRAY_BUFFER
 #define GL_ARRAY_BUFFER 0x8892
@@ -46,14 +47,9 @@
 
 static inline bool gl3_load() {
     if (!gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress)) {
-        fprintf(stderr, "[gl_loader] ERROR: GLAD initialization failed\n");
+        fprintf(stderr, "[gl_loader] ERROR: GLAD GLES2 loader failed\n");
         return false;
     }
-    #ifdef GLES
-    if (!gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress)) {
-        fprintf(stderr, "[gl_loader] ERROR: GLAD GLES2 loader failed\n");
-    }
-    #endif
     if (!GLAD_GL_ES_VERSION_2_0) {
         fprintf(stderr, "[gl_loader] ERROR: Need GLES 2.0, not supported.\n");
         return false;
@@ -62,4 +58,12 @@ static inline bool gl3_load() {
     fprintf(stderr, "[gl_loader] GL %s loaded successfully.\n",
             (const char*)glGetString(GL_VERSION));
     return true;
+}
+
+static inline int gl3_gles_major_version() {
+    const char* v = (const char*)glGetString(GL_VERSION);
+    if (!v) return 2;
+    const char* es = strstr(v, "ES ");
+    if (!es) return 2;
+    return (es[3] == '3') ? 3 : 2;
 }

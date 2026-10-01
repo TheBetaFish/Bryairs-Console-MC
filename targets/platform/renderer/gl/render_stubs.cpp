@@ -11,7 +11,6 @@ void GLRenderer::CBuffDeferredModeEnd() {}
 void GLRenderer::StateSetLightEnable(int, bool) {}
 void GLRenderer::StateSetEnableViewportClipPlanes(bool) {}
 void GLRenderer::StateSetForceLOD(int) {}
-void GLRenderer::StateSetTexGenCol(int, float, float, float, float, bool) {}
 
 // Textures
 void GLRenderer::TextureDynamicUpdateStart() {}

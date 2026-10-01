@@ -12,6 +12,8 @@ void C4JRender::StateSetLightEnable(int, bool) {}
 void C4JRender::StateSetEnableViewportClipPlanes(bool) {}
 void C4JRender::StateSetForceLOD(int) {}
 void C4JRender::StateSetTexGenCol(int, float, float, float, float, bool) {}
+void C4JRender::StateSetTexGenEnable(int, bool) {}
+void C4JRender::StateSetShadeModel(int) {}
 
 // Textures
 void C4JRender::TextureDynamicUpdateStart() {}

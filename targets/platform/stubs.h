@@ -24,7 +24,7 @@
 #define GL_FLAT 0x1D00
 #endif
 
-#define glad_glShadeModel(mode) (void)0
+#define glad_glShadeModel(mode) PlatformRenderer.StateSetShadeModel(mode)
 
 class FloatBuffer;
 class IntBuffer;
@@ -54,8 +54,8 @@ class GL11 {
 public:
 #undef glShadeModel
 #define GL_SHADEMODEL_IS_FUNCTION
-    static void glShadeModel(int mode) { 
-        //glad_glShadeModel(mode); 
+    static void glShadeModel(int mode) {
+        PlatformRenderer.StateSetShadeModel(mode);
     }
 };
 #undef GL_ARRAY_BUFFER_ARB

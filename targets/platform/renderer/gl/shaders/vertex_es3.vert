@@ -1,0 +1,89 @@
+R"GLSL(
+#version 300 es
+precision highp float;
+precision highp int;
+
+in vec3 aPos;
+in vec2 aUV0;
+in vec4 aColor;
+in vec3 aNormal;
+in vec2 aLMraw;
+
+uniform mat4  uMVP;
+uniform mat4  uMV;
+uniform mat3  uNormalMatrix;
+uniform float uNormalSign;
+uniform mat4  uTexMat0;
+uniform vec4  uBaseColor;
+uniform int   uLighting;
+uniform vec3  uLight0Dir;
+uniform vec3  uLight1Dir;
+uniform vec3  uLightDiffuse;
+uniform vec3  uLightAmbient;
+uniform vec3  uChunkOffset;
+uniform int   uFogMode;
+uniform float uFogStart;
+uniform float uFogEnd;
+uniform float uFogDensity;
+uniform vec4  uLMTransform;
+uniform vec2  uGlobalLM;
+uniform int   uTexGenMask;
+uniform int   uTexGenEye;
+uniform vec4  uTexGenPS;
+uniform vec4  uTexGenPT;
+uniform vec4  uTexGenPR;
+uniform vec4  uTexGenPQ;
+
+out vec2  vUV0;
+out vec2  vUV1;
+out vec4  vColor;
+flat out vec4 vColorFlat;
+out float vFogFactor;
+
+void main() {
+    vec4 aPos4   = vec4(aPos + uChunkOffset, 1.0);
+    vec4 eyePos  = uMV  * aPos4;
+    gl_Position  = uMVP * aPos4;
+
+    if (uTexGenMask != 0) {
+        vec4 obj = vec4(aPos, 1.0);
+        float s = 0.0;
+        float t = 0.0;
+        float r = 0.0;
+        float q = 1.0;
+        if ((uTexGenMask & 1) != 0)
+            s = ((uTexGenEye & 1) != 0) ? dot(uTexGenPS, eyePos) : dot(uTexGenPS, obj);
+        if ((uTexGenMask & 2) != 0)
+            t = ((uTexGenEye & 2) != 0) ? dot(uTexGenPT, eyePos) : dot(uTexGenPT, obj);
+        if ((uTexGenMask & 4) != 0)
+            r = ((uTexGenEye & 4) != 0) ? dot(uTexGenPR, eyePos) : dot(uTexGenPR, obj);
+        if ((uTexGenMask & 8) != 0)
+            q = ((uTexGenEye & 8) != 0) ? dot(uTexGenPQ, eyePos) : dot(uTexGenPQ, obj);
+        vec4 gen = uTexMat0 * vec4(s, t, r, q);
+        float w = (abs(gen.w) > 1e-6) ? gen.w : 1.0;
+        vUV0 = gen.xy / w;
+    } else {
+        vUV0 = (uTexMat0 * vec4(aUV0, 0.0, 1.0)).xy;
+    }
+
+    vec2 lm = (aLMraw.x <= -500.0) ? uGlobalLM : aLMraw;
+    vUV1 = (lm / 256.0) * uLMTransform.xy + uLMTransform.zw;
+
+    bool sentinel = (aColor.r == 0.0 && aColor.g == 0.0 && aColor.b == 0.0 && aColor.a == 0.0);
+    vec4 col = sentinel ? uBaseColor : aColor.abgr;
+    if (uLighting == 1) {
+        vec3 n = normalize(uNormalMatrix * aNormal) * uNormalSign;
+        float d0 = max(dot(n, uLight0Dir), 0.0);
+        float d1 = max(dot(n, uLight1Dir), 0.0);
+        col = vec4(col.rgb * (uLightAmbient + uLightDiffuse * (d0 + d1)), col.a);
+    }
+    vColor = col;
+    vColorFlat = col;
+
+    float eDist = length(eyePos.xyz);
+    if      (uFogMode == 1) vFogFactor = clamp((uFogEnd - eDist) / max(uFogEnd - uFogStart, 1e-4), 0.0, 1.0);
+    else if (uFogMode == 2) vFogFactor = clamp(exp(-uFogDensity * eDist), 0.0, 1.0);
+    else if (uFogMode == 3) { float d = uFogDensity * eDist; vFogFactor = clamp(exp(-d*d), 0.0, 1.0); }
+    else                    vFogFactor = 1.0;
+}
+)GLSL";

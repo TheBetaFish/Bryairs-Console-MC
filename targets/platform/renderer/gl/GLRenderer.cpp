@@ -194,12 +194,20 @@ IPlatformRenderer& PlatformRenderer_get() {
 #define CPP_GLSL_INCLUDE
 
 #ifdef GLES
-static const char* VERT_SRC =
+static const char* VERT_SRC_ES2 =
 #include "./shaders/vertex_es.vert"
 
     ;
-static const char* FRAG_SRC =
+static const char* FRAG_SRC_ES2 =
 #include "./shaders/fragment_es.frag"
+
+    ;
+static const char* VERT_SRC_ES3 =
+#include "./shaders/vertex_es3.vert"
+
+    ;
+static const char* FRAG_SRC_ES3 =
+#include "./shaders/fragment_es3.frag"
 
     ;
 #else
@@ -211,6 +219,24 @@ static const char* FRAG_SRC =
 #include "./shaders/fragment.frag"
     ;
 #endif
+
+static int s_glesMajor = 2;
+
+static const char* shaderVertexSource() {
+#ifdef GLES
+    return (s_glesMajor >= 3) ? VERT_SRC_ES3 : VERT_SRC_ES2;
+#else
+    return VERT_SRC;
+#endif
+}
+
+static const char* shaderFragmentSource() {
+#ifdef GLES
+    return (s_glesMajor >= 3) ? FRAG_SRC_ES3 : FRAG_SRC_ES2;
+#else
+    return FRAG_SRC;
+#endif
+}
 
 #undef CPP_GLSL_INCLUDE
 
@@ -344,6 +370,9 @@ struct ShaderUniforms {
     GLint uUseTexture = -1;
     GLint uInvGamma = -1;
     GLint uChunkOffset = -1;
+    GLint uFlatShading = -1;
+    GLint uTexGenMask = -1, uTexGenEye = -1;
+    GLint uTexGenPS = -1, uTexGenPT = -1, uTexGenPR = -1, uTexGenPQ = -1;
 
     void build(const char* vs, const char* fs) {
         GLuint v = compileShader(GL_VERTEX_SHADER, vs);
@@ -380,6 +409,13 @@ struct ShaderUniforms {
         L(uUseTexture);
         L(uInvGamma);
         L(uChunkOffset);
+        L(uFlatShading);
+        L(uTexGenMask);
+        L(uTexGenEye);
+        L(uTexGenPS);
+        L(uTexGenPT);
+        L(uTexGenPR);
+        L(uTexGenPQ);
 #undef L
 
         glUseProgram(prog);
@@ -491,6 +527,10 @@ struct RenderState {
     glm::vec4 lmt = {1, 1, 0, 0};
     glm::vec2 globalLM = {240.f, 240.f};  // fullbright default
     int activeTexture = 0;
+    bool flatShading = false;
+    int texGenMask = 0, texGenEye = 0;
+    glm::vec4 texGenS = {0, 0, 0, 0}, texGenT = {0, 0, 0, 0};
+    glm::vec4 texGenR = {0, 0, 0, 0}, texGenQ = {0, 0, 0, 0};
 };
 
 enum RenderDirtyBits {
@@ -502,6 +542,8 @@ enum RenderDirtyBits {
     DIRTY_TEXTURE = 1 << 5,
     DIRTY_LMT = 1 << 6,
     DIRTY_GLOBAL_LM = 1 << 7,
+    DIRTY_SHADE = 1 << 8,
+    DIRTY_TEXGEN = 1 << 9,
 };
 
 static inline void markDirty(unsigned int bit) { s_rs_dirty_mask |= bit; }
@@ -681,6 +723,16 @@ static void pushRenderState() {
             glUniform4fv(s_shader.uLMTransform, 1, glm::value_ptr(s_rs.lmt));
         if (s_rs_dirty_mask & DIRTY_GLOBAL_LM)
             glUniform2fv(s_shader.uGlobalLM, 1, glm::value_ptr(s_rs.globalLM));
+        if (s_rs_dirty_mask & DIRTY_SHADE)
+            glUniform1i(s_shader.uFlatShading, s_rs.flatShading ? 1 : 0);
+        if (s_rs_dirty_mask & DIRTY_TEXGEN) {
+            glUniform1i(s_shader.uTexGenMask, s_rs.texGenMask);
+            glUniform1i(s_shader.uTexGenEye, s_rs.texGenEye);
+            glUniform4fv(s_shader.uTexGenPS, 1, glm::value_ptr(s_rs.texGenS));
+            glUniform4fv(s_shader.uTexGenPT, 1, glm::value_ptr(s_rs.texGenT));
+            glUniform4fv(s_shader.uTexGenPR, 1, glm::value_ptr(s_rs.texGenR));
+            glUniform4fv(s_shader.uTexGenPQ, 1, glm::value_ptr(s_rs.texGenQ));
+        }
         s_rs_dirty_mask = 0;
     }
     flushMatrices();
@@ -792,7 +844,7 @@ void GLRenderer::Initialise() {
         s_windowHeight = (int)(dm.h * 0.4f);
     }
 #ifdef GLES
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 #else
@@ -814,6 +866,19 @@ void GLRenderer::Initialise() {
         return;
     }
     s_glContext = SDL_GL_CreateContext(s_window);
+#ifdef GLES
+    if (!s_glContext) {
+        fprintf(stderr,
+                "[4J_Render] GLES3 context unavailable, falling back to "
+                "GLES2: %s\n",
+                SDL_GetError());
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+        SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                            SDL_GL_CONTEXT_PROFILE_ES);
+        s_glContext = SDL_GL_CreateContext(s_window);
+    }
+#endif
     if (!s_glContext) {
         fprintf(stderr, "[4J_Render] Context: %s\n", SDL_GetError());
         return;
@@ -821,10 +886,9 @@ void GLRenderer::Initialise() {
     if (!gl3_load()) {
         return;
     }
-    if (!gladLoadGLES2Loader((GLADloadproc)SDL_GL_GetProcAddress)) {
-        fprintf(stderr, "[4J_Render] ERROR: gladLoadGLLoader failed\n");
-        return;
-    }
+#ifdef GLES
+    s_glesMajor = gl3_gles_major_version();
+#endif
 
     while (glGetError() != GL_NO_ERROR);
     fprintf(stderr, "=== OPENGL CONTEXT INFO ===\n");
@@ -850,7 +914,7 @@ void GLRenderer::Initialise() {
     glCullFace(GL_BACK);
     glClearColor(0, 0, 0, 1);
     glViewport(0, 0, s_windowWidth, s_windowHeight);
-    s_shader.build(VERT_SRC, FRAG_SRC);
+    s_shader.build(shaderVertexSource(), shaderFragmentSource());
     initStreamingVBOs();
 
     s_mainThreadId = std::this_thread::get_id();
@@ -1331,6 +1395,69 @@ void GLRenderer::StateSetAlphaFunc(int, float p) {
     if (s_rs.alphaRef != p) {
         s_rs.alphaRef = p;
         markDirty(DIRTY_ALPHA);
+    }
+}
+
+static int texGenBit(int coord) {
+    switch (coord) {
+        case 0x2000:
+            return 1;  // GL_S
+        case 0x2001:
+            return 2;  // GL_T
+        case 0x2002:
+            return 4;  // GL_R
+        case 0x2003:
+            return 8;  // GL_Q
+        default:
+            return 0;
+    }
+}
+
+void GLRenderer::StateSetShadeModel(int mode) {
+    bool flat = (mode == 0x1D00 /*GL_FLAT*/);
+    if (s_rs.flatShading != flat) {
+        s_rs.flatShading = flat;
+        markDirty(DIRTY_SHADE);
+    }
+}
+
+void GLRenderer::StateSetTexGenCol(int coord, float x, float y, float z,
+                                   float w, bool eyeSpace) {
+    int bit = texGenBit(coord);
+    if (!bit) return;
+    glm::vec4 p = {x, y, z, w};
+    switch (bit) {
+        case 1:
+            s_rs.texGenS = p;
+            break;
+        case 2:
+            s_rs.texGenT = p;
+            break;
+        case 4:
+            s_rs.texGenR = p;
+            break;
+        case 8:
+            s_rs.texGenQ = p;
+            break;
+    }
+    if (eyeSpace)
+        s_rs.texGenEye |= bit;
+    else
+        s_rs.texGenEye &= ~bit;
+    markDirty(DIRTY_TEXGEN);
+}
+
+void GLRenderer::StateSetTexGenEnable(int coord, bool enable) {
+    int bit = texGenBit(coord);
+    if (!bit) return;
+    int mask = s_rs.texGenMask;
+    if (enable)
+        mask |= bit;
+    else
+        mask &= ~bit;
+    if (mask != s_rs.texGenMask) {
+        s_rs.texGenMask = mask;
+        markDirty(DIRTY_TEXGEN);
     }
 }
 void GLRenderer::StateSetDepthSlopeAndBias(float s, float b) {

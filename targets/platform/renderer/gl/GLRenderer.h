@@ -104,6 +104,7 @@ public:
     void StateSetBlendFunc(int src, int dst);
     void StateSetBlendFactor(unsigned int colour);
     void StateSetAlphaFunc(int func, float param);
+    void StateSetShadeModel(int mode);
     void StateSetDepthFunc(int func);
     void StateSetFaceCull(bool enable);
     void StateSetFaceCullCW(bool enable);
@@ -128,6 +129,7 @@ public:
     void StateSetEnableViewportClipPlanes(bool enable);
     void StateSetTexGenCol(int col, float x, float y, float z, float w,
                            bool eyeSpace);
+    void StateSetTexGenEnable(int coord, bool enable);
     void StateSetStencil(int Function, std::uint8_t stencil_ref,
                          std::uint8_t stencil_func_mask,
                          std::uint8_t stencil_write_mask);

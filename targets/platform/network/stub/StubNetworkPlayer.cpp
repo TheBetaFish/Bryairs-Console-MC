@@ -1,5 +1,7 @@
 #include "StubNetworkPlayer.h"
 
+#include <climits>
+
 #include "StubPlatformNetwork.h"
 #include "java/System.h"
 #include "platform/PlatformTypes.h"
