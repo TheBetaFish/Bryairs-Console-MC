@@ -28,6 +28,7 @@ namespace platform_internal {
 IPlatformInput& PlatformInput_get() {
     static SDL2Input instance;
     return instance;
+}  // PlatformInput_get
 }  // namespace platform_internal
 
 static const int KEY_COUNT = SDL_NUM_SCANCODES;
