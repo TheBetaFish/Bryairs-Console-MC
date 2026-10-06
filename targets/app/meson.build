@@ -62,7 +62,10 @@ app_dependencies += [
     # technically also GL/EGL, but the GL renderer needs to not leak GL shit to fix that
 ]
 
-app_name = 'Minecraft.Client.html' if host_machine.system() == 'emscripten' else 'Minecraft.Client'
+app_name = 'Minecraft.Client'
+if host_machine.system() == 'emscripten'
+    app_name = 'Minecraft.Client.html'
+endif
 
 app = executable(
     app_name,
