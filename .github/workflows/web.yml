@@ -33,7 +33,7 @@ jobs:
       - name: Configure
         run: |
           emcc --version
-          emcmake meson setup build \
+          meson setup build \
             --cross-file scripts/emscripten_native.txt \
             -Dbuildtype=release \
             -Drenderer=gles \
