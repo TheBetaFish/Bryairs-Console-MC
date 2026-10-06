@@ -3,6 +3,7 @@ name: macOS
 # TODO: test with only pull-request
 on:
   push:
+    branches-ignore: [emscripten-web-port]
     paths: &workflow_paths
       - "**.cppm"
       - "**.ixx"
