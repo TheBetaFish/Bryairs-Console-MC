@@ -213,4 +213,4 @@ common/UI/UILayer.cpp
 common/UI/UIScene.cpp
 common/UI/UIString.cpp
 common/UI/UITTFFont.cpp
-targets/app/common/XboxStubs.cpp
+common/XboxStubs.cpp
