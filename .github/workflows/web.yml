@@ -52,7 +52,7 @@ jobs:
             --cross-file scripts/emscripten_native.txt \
             -Dbuildtype=release \
             -Drenderer=gles \
-            -Dui_backend=shiggy \
+            -Dui_backend=java \
             -Denable_vsync=false \
             -Denable_mimalloc=disabled
 
