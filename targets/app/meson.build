@@ -3,7 +3,7 @@
 # removed.
 fs = import('fs')
 
-app_common_sources = files(fs.read('common_sources.txt').strip().split('\\n'))
+app_common_sources = files(fs.read('common_sources.txt').strip().split('\n'))
 app_dependencies = []
 app_link_args = []
 
