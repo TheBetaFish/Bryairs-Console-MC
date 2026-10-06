@@ -28,7 +28,6 @@ namespace platform_internal {
 IPlatformInput& PlatformInput_get() {
     static SDL2Input instance;
     return instance;
-}
 }  // namespace platform_internal
 
 static const int KEY_COUNT = SDL_NUM_SCANCODES;
@@ -190,15 +189,14 @@ static int SDLCALL EventWatcher(void*, SDL_Event* e) {
         s_accumRelY += (float)e->motion.yrel;
     } else if (e->type == SDL_TEXTINPUT && s_keyboardActive) {
         s_textInputBuf += e->text.text;
-    } else if (e->type == SDL_CONTROLLERDEVICEADDED) {  // Will search for
-                                                        // controller if none
+    } else if (e->type == SDL_CONTROLLERDEVICEADDED) {
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
             if (SDL_IsGameController(i)) {
                 controller = SDL_GameControllerOpen(i);
                 break;
             }
         }
-    } else if (controller) {  // only checks when a controller exists
+    } else if (controller) {
         if (e->type == SDL_CONTROLLERDEVICEREMOVED) {
             SDL_Joystick* joy = SDL_GameControllerGetJoystick(controller);
             if (SDL_JoystickInstanceID(joy) == e->cdevice.which) {
@@ -270,7 +268,11 @@ void SDL2Input::Initialise(int, unsigned char, unsigned char, unsigned char) {
     s_snapTaken = s_scrollSnapTaken = s_prevMenuDisplayed = false;
 
     if (s_sdlInitialized) {
+#ifdef __EMSCRIPTEN__
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+#else
         SDL_SetRelativeMouseMode(SDL_TRUE);
+#endif
 
         // looks for controller
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
@@ -416,16 +418,16 @@ int SDL2Input::GetHotbarSlotPressed(int iPad) {
         return KFN(SDL_SCANCODE_PAGEDOWN);                                     \
     case ACTION_MENU_OK:                                                       \
         return KFN(SDL_SCANCODE_RETURN) || KFN(SDL_SCANCODE_Z) ||              \
-               CFN(SDL_CONTROLLER_BUTTON_A);                                   \
+               CFN(SDL_CONTROLLER_BUTTON_A);                                  \
     case ACTION_MENU_CANCEL:                                                   \
         return KFN(SDL_SCANCODE_ESCAPE) || KFN(SDL_SCANCODE_X) ||              \
-               CFN(SDL_CONTROLLER_BUTTON_B);                                   \
+               CFN(SDL_CONTROLLER_BUTTON_B);                                  \
     case ACTION_MENU_A:                                                        \
         return KFN(SDL_SCANCODE_Z) || KFN(SDL_SCANCODE_RETURN) ||              \
-               CFN(SDL_CONTROLLER_BUTTON_A);                                   \
+               CFN(SDL_CONTROLLER_BUTTON_A);                                  \
     case ACTION_MENU_B:                                                        \
         return KFN(SDL_SCANCODE_X) || KFN(SDL_SCANCODE_ESCAPE) ||              \
-               CFN(SDL_CONTROLLER_BUTTON_B);                                   \
+               CFN(SDL_CONTROLLER_BUTTON_B);                                  \
     case ACTION_MENU_X:                                                        \
         return KFN(SDL_SCANCODE_C) || CFN(SDL_CONTROLLER_BUTTON_X);            \
     case ACTION_MENU_Y:                                                        \
