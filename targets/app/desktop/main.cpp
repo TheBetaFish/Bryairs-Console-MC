@@ -6,6 +6,10 @@
 // #include <system_service.h>
 #include <csignal>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
 #include "util/StringHelpers.h"
 
 #if defined(__linux__) && defined(__GLIBC__) || defined(__APPLE__)
@@ -95,6 +99,92 @@ uint32_t dwProfileSettingsA[NUM_PROFILE_VALUES] = {0, 0, 0, 0, 0};
 //-------------------------------------------------------------------------------------
 
 bool g_bWidescreen = true;
+
+#ifdef __EMSCRIPTEN__
+static Minecraft* g_pMinecraft = nullptr;
+static bool g_bTrialTimerDisplayed = true;
+
+static void MainLoopIteration() {
+    Minecraft* pMinecraft = g_pMinecraft;
+    if (!pMinecraft) return;
+    if (PlatformRenderer.ShouldClose()) {
+        emscripten_cancel_main_loop();
+        return;
+    }
+    PlatformRenderer.StartFrame();
+    if (pMinecraft->pollResize()) {
+        int fbw, fbh;
+        PlatformRenderer.GetFramebufferSize(fbw, fbh);
+        ui.setScreenSize(fbw, fbh);
+    }
+    app.UpdateTime();
+    PlatformInput.Tick();
+    PlatformProfile.Tick();
+    PlatformStorage.Tick();
+    PlatformRenderer.Tick();
+    g_NetworkManager.DoWork();
+
+#if defined(ENABLE_JAVA_GUIS)
+    pMinecraft->run_middle();
+    if (app.GetGameStarted()) {
+#else
+    if (app.GetGameStarted()) {
+        pMinecraft->run_middle();
+#endif
+        app.SetAppPaused(
+            g_NetworkManager.GetPlayerCount() == 1 &&
+            ui.IsPauseMenuDisplayed(PlatformProfile.GetPrimaryPad()));
+    } else {
+        pMinecraft->soundEngine->tick(nullptr, 0.0f);
+        pMinecraft->textures->tick(true, false);
+        if (app.GetReallyChangingSessionType()) {
+            pMinecraft->tickAllConnections();
+        }
+    }
+    pMinecraft->soundEngine->playMusicTick();
+
+    static bool bInitnet = false;
+    if (bInitnet) {
+        g_NetworkManager.Initialise();
+    }
+
+    ui.tick();
+    ui.render();
+    PlatformRenderer.Present();
+    ui.CheckMenuDisplayed();
+
+    if (app.uiGameDefinedDataChangedBitmask != 0) {
+        void* pData = nullptr;
+        for (int i = 0; i < XUSER_MAX_COUNT; i++) {
+            if (app.uiGameDefinedDataChangedBitmask & (1 << i)) {
+                app.ClearGameSettingsChangedFlag(i);
+                app.DebugPrintf(
+                    "***  - APPLYING GAME SETTINGS CHANGE for pad %d\\n", i);
+                app.ApplyGameSettingsChanged(i);
+
+#if defined(_DEBUG_MENUS_ENABLED)
+                if (app.DebugSettingsOn()) {
+                    app.ActionDebugMask(i);
+                } else {
+                    app.ActionDebugMask(i, true);
+                }
+#endif
+                pMinecraft->stats[i]->clear();
+                pMinecraft->stats[i]->parse(pData);
+            }
+        }
+        app.uiGameDefinedDataChangedBitmask = 0;
+    }
+
+    g_NetworkManager.DoWork();
+    app.HandleXuiActions();
+
+    if (g_bTrialTimerDisplayed) {
+        ui.ShowTrialTimer(false);
+        g_bTrialTimerDisplayed = false;
+    }
+}
+#endif
 
 void DefineActions(void) {
     // The app needs to define the actions required, and the possible mappings
@@ -519,6 +609,11 @@ int main(int argc, const char* argv[]) {
     app.InitGameSettings();
 
     app.InitialiseTips();
+
+#ifdef __EMSCRIPTEN__
+    g_pMinecraft = pMinecraft;
+    emscripten_set_main_loop(MainLoopIteration, 0, 1);
+#else
     while (!PlatformRenderer.ShouldClose()) {
         PlatformRenderer.StartFrame();
         if (pMinecraft->pollResize()) {
@@ -528,22 +623,11 @@ int main(int argc, const char* argv[]) {
         }
         app.UpdateTime();
         PlatformInput.Tick();
-
         PlatformProfile.Tick();
-
         PlatformStorage.Tick();
-
         PlatformRenderer.Tick();
-
-        // Tick the social networking manager.
-        //		CSocialManager::Instance()->Tick();
-
-        // Tick sentient.
-        //		SentientManager.Tick();
-
         g_NetworkManager.DoWork();
 
-        // Render game graphics.
 #if defined(ENABLE_JAVA_GUIS)
         pMinecraft->run_middle();
         if (app.GetGameStarted()) {
@@ -552,88 +636,60 @@ int main(int argc, const char* argv[]) {
             pMinecraft->run_middle();
 #endif
             app.SetAppPaused(
-                // TODO: proper fix for pausing
-                // 4jcraft: IsLocalGame() doesn't seem to work properly on Iggy
-                // UI, this should work even in multiplayer scenarios though
-                // since it checks for the player count anyway
-                //
-                // g_NetworkManager.IsLocalGame() &&
                 g_NetworkManager.GetPlayerCount() == 1 &&
                 ui.IsPauseMenuDisplayed(PlatformProfile.GetPrimaryPad()));
         } else {
             pMinecraft->soundEngine->tick(nullptr, 0.0f);
             pMinecraft->textures->tick(true, false);
             if (app.GetReallyChangingSessionType()) {
-                pMinecraft
-                    ->tickAllConnections();  // Added to stop timing out when we
-                                             // are waiting after converting to
-                                             // an offline game
+                pMinecraft->tickAllConnections();
             }
         }
         pMinecraft->soundEngine->playMusicTick();
 
         static bool bInitnet = false;
-
         if (bInitnet) {
             g_NetworkManager.Initialise();
         }
 
         ui.tick();
         ui.render();
-
-        // Present the frame.
         PlatformRenderer.Present();
-
         ui.CheckMenuDisplayed();
-        // has the game defined profile data been changed (by a profile load)
+
         if (app.uiGameDefinedDataChangedBitmask != 0) {
             void* pData;
             for (int i = 0; i < XUSER_MAX_COUNT; i++) {
                 if (app.uiGameDefinedDataChangedBitmask & (1 << i)) {
-                    // reset the changed flag
                     app.ClearGameSettingsChangedFlag(i);
                     app.DebugPrintf(
-                        "***  - APPLYING GAME SETTINGS CHANGE for pad %d\n", i);
+                        "***  - APPLYING GAME SETTINGS CHANGE for pad %d\\n", i);
                     app.ApplyGameSettingsChanged(i);
 
 #if defined(_DEBUG_MENUS_ENABLED)
                     if (app.DebugSettingsOn()) {
                         app.ActionDebugMask(i);
                     } else {
-                        // force debug mask off
                         app.ActionDebugMask(i, true);
                     }
 #endif
-                    // clear the stats first - there could have beena signout
-                    // and sign back in in the menus need to clear the player
-                    // stats - can't assume it'll be done in setlevel - we may
-                    // not be in the game
                     pMinecraft->stats[i]->clear();
                     pMinecraft->stats[i]->parse(pData);
                 }
             }
-
-            // clear the flag
             app.uiGameDefinedDataChangedBitmask = 0;
         }
 
         g_NetworkManager.DoWork();
-
-        // Any threading type things to deal with from the xui side?
         app.HandleXuiActions();
 
-        // need to turn off the trial timer if it was on
         if (bTrialTimerDisplayed) {
             ui.ShowTrialTimer(false);
             bTrialTimerDisplayed = false;
         }
+    }
 
-        // Fix for #7318 - Title crashes after short soak in the leaderboards
-    }  // end game loop
-
-    // Graceful shutdown: destroy GL context and GLFW before any C++ dtors run.
-    // Without this, static/global destructors that touch GL objects cause
-    // SIGSEGV.
     PlatformRenderer.Shutdown();
     _exit(0);
+#endif
 }  // end main
