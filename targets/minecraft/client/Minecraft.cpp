@@ -3,9 +3,9 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_keycode.h>
-#include <SDL2/SDL_scancode.h>
+#include <SDL.h>
+#include <SDL_keycode.h>
+#include <SDL_scancode.h>
 #include <SDL_keyboard.h>
 #include <assert.h>
 #include <stdlib.h>
