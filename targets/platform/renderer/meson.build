@@ -8,7 +8,9 @@ platform_renderer_gl_dependencies = [
 platform_renderer_gl_defs = []
 
 if get_option('renderer') == 'gles'
-    platform_renderer_gl_dependencies += dependency('glesv2')
+    if host_machine.system() != 'emscripten'
+        platform_renderer_gl_dependencies += dependency('glesv2')
+    endif
     platform_renderer_gl_defs = ['-DGLES']
 else
     platform_renderer_gl_defs = []
