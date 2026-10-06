@@ -51,6 +51,7 @@ jobs:
           meson setup build \
             --cross-file scripts/emscripten_native.txt \
             -Dbuildtype=release \
+            -Dunity=off \
             -Drenderer=gles \
             -Dui_backend=java \
             -Denable_vsync=false \
