@@ -2,6 +2,7 @@ name: Format Check
 
 on:
   push:
+    branches-ignore: [emscripten-web-port]
     paths: &workflow_paths
       - "**.cpp"
       - "**.h"
