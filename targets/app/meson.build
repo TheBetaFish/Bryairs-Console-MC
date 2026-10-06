@@ -7,6 +7,18 @@ app_common_sources = files(fs.read('common_sources.txt').strip().split('\\n'))
 app_dependencies = []
 app_link_args = []
 
+if host_machine.system() == 'emscripten'
+    app_link_args += [
+        '--shell-file', meson.project_source_root() / 'web/shell.html',
+        '--preload-file', meson.project_source_root() / 'targets/resources/Common@Common',
+        '--preload-file', meson.project_build_root() / 'targets/resources/MediaWindows64.arc@Common/Media/MediaWindows64.arc',
+        '--preload-file', meson.project_source_root() / 'targets/resources/Common/music@music',
+        '--preload-file', meson.project_source_root() / 'targets/resources/DurangoMedia/Sound@Sound',
+        '-sENVIRONMENT=web',
+        '-sEXIT_RUNTIME=0',
+    ]
+endif
+
 # mimalloc must come first so the linker resolves malloc/free symbols to it
 # before glibc. --no-as-needed prevents the linker from dropping it as
 # "unreferenced" (the override happens via weak symbols, not direct calls).
@@ -50,13 +62,16 @@ app_dependencies += [
     # technically also GL/EGL, but the GL renderer needs to not leak GL shit to fix that
 ]
 
+app_name = 'Minecraft.Client.html' if host_machine.system() == 'emscripten' else 'Minecraft.Client'
+
 app = executable(
-    'Minecraft.Client',
+    app_name,
     app_common_sources + app_platform_sources + localisation[1],
     include_directories: include_directories('..'),
     dependencies: app_dependencies,
     cpp_args: global_cpp_args + global_cpp_defs,
     link_args: app_link_args + global_link_args,
+    link_depends: media_archive,
     install: true,
     install_dir: '',
 )
