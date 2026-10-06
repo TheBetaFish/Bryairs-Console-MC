@@ -10,7 +10,9 @@ project(
         'warning_level=0',
         'unity=on',  # merge source files per target
         'unity_size=8',  # TODO: mess around with this
-        'buildtype=debug',
+        'buildtype=release',
+        'b_lto=true',
+        'b_ndebug=if-release',
         'force_fallback_for=[\'miniaudio\',\'stb\']',
         'b_pch=true',  # precompiled headers
         'default_library=static',  # static linkage to subprojects
@@ -34,6 +36,22 @@ python = pymod.find_installation('python3', required: true)
 cc = meson.get_compiler('cpp')
 
 global_cpp_args = []
+global_link_args = []
+
+if host_machine.system() == 'emscripten'
+    global_cpp_args += ['-pthread']
+    global_link_args += [
+        '-pthread',
+        '-sUSE_SDL=2',
+        '-sMIN_WEBGL_VERSION=2',
+        '-sMAX_WEBGL_VERSION=2',
+        '--use-port=zlib',
+        '-sALLOW_MEMORY_GROWTH=1',
+        '-sPTHREAD_POOL_SIZE=4',
+        '-sFORCE_FILESYSTEM=1',
+        '-sASSERTIONS=0',
+    ]
+endif
 global_cpp_defs = [
     '-DSPLIT_SAVES',
 #    '-D_LARGE_WORLDS',
@@ -103,7 +121,20 @@ subdir('targets/platform')
 
 # MARK: platform configuration
 
-if host_machine.system() in ['linux', 'windows', 'darwin']
+if host_machine.system() == 'emscripten'
+    platform_fs_dep = platform_fs_std_dep
+    platform_game_dep = platform_game_stub_dep
+    platform_input_dep = platform_input_sdl2_dep
+    platform_leaderboard_dep = platform_leaderboard_stub_dep
+    platform_network_dep = platform_network_stub_dep
+    platform_profile_dep = platform_profile_stub_dep
+    platform_renderer_dep = platform_renderer_gl_dep
+    platform_sound_dep = platform_sound_miniaudio_dep
+    platform_storage_dep = platform_storage_stub_dep
+    platform_thread_dep = platform_thread_dep
+    app_platform_sources = files('targets/app/desktop/main.cpp')
+
+elif host_machine.system() in ['linux', 'windows', 'darwin']
     platform_fs_dep = platform_fs_std_dep
     platform_game_dep = platform_game_stub_dep
     platform_input_dep = platform_input_sdl2_dep
