@@ -3,7 +3,7 @@
 # removed.
 fs = import('fs')
 
-app_common_sources = files(fs.read('common_sources.txt').strip().split('\n'))
+app_common_sources = files(fs.read('common_sources.txt').strip().split('\\n'))
 app_dependencies = []
 app_link_args = []
 
@@ -56,7 +56,7 @@ app = executable(
     include_directories: include_directories('..'),
     dependencies: app_dependencies,
     cpp_args: global_cpp_args + global_cpp_defs,
-    link_args: app_link_args,
+    link_args: app_link_args + global_link_args,
     install: true,
     install_dir: '',
 )
