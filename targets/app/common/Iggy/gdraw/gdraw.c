@@ -790,10 +790,17 @@ static void hooked_glDrawElements(GLenum mode, GLsizei count, GLenum type,
 static void gdraw_UseProgramSafe(GLuint program) {
     if (!program) {
         if (!gdraw_null_program && gdraw_real_useprogram) {
+#if defined(__EMSCRIPTEN__)
+            const char* vs =
+                "#version 300 es\nvoid main(){gl_Position=vec4(0.0);}";
+            const char* fs =
+                "#version 300 es\nprecision mediump float;\nout vec4 c;\nvoid main(){c=vec4(0.0);}";
+#else
             const char* vs =
                 "#version 330 core\nvoid main(){gl_Position=vec4(0);}";
             const char* fs =
                 "#version 330 core\nout vec4 c;\nvoid main(){c=vec4(0);}";
+#endif
             GLuint v = gdraw_real_createshader(GL_VERTEX_SHADER);
             GLuint f = gdraw_real_createshader(GL_FRAGMENT_SHADER);
             gdraw_real_shadersource(v, 1, &vs, NULL);
