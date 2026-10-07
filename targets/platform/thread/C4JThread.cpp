@@ -123,7 +123,7 @@ void setThreadNamePlatform([[maybe_unused]] std::uint32_t threadId,
 //     } __except (EXCEPTION_EXECUTE_HANDLER) {
 //     }
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__EMSCRIPTEN__)
     // pthread_setname_np limit: 16 chars including null terminator.
     char truncated[16];
     std::snprintf(truncated, sizeof(truncated), "%s", name);
