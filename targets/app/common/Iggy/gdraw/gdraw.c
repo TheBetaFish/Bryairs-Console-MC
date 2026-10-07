@@ -613,9 +613,18 @@ static void gdraw_ShaderSourceUpgraded(GLuint shader, GLsizei count,
         src = gdraw_strreplace(src, "gl_FragColor", "_gdraw_frag_out");
     }
 
+#if defined(__EMSCRIPTEN__)
+    // WebGL 2 exposes OpenGL ES 3.0, not desktop GLSL 3.30.
+    // Using "#version 330 core" makes shader compilation fail in the browser,
+    // which then leaves a zero shader handle that WebGL rejects in attachShader.
+    const char* header = is_vert
+                             ? "#version 300 es\n"
+                             : "#version 300 es\nprecision mediump float;\nprecision mediump int;\nout vec4 _gdraw_frag_out;\n";
+#else
     const char* header = is_vert
                              ? "#version 330 core\n"
                              : "#version 330 core\nout vec4 _gdraw_frag_out;\n";
+#endif
     char* patched = (char*)malloc(strlen(header) + strlen(src) + 2);
     if (!patched) {
         free(src);
