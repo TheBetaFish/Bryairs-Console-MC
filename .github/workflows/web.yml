@@ -58,7 +58,7 @@ jobs:
             -Denable_mimalloc=disabled
 
       - name: Build
-        run: meson compile -C build -j2
+        run: meson compile -C build -j2 targets/app/Minecraft.Client.html
 
       - name: Assemble Pages site
         run: |
