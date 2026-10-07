@@ -85,7 +85,18 @@
           // #if GCC_VERSION > 30200
     #endif
 
-    #if defined(__RADX32__)
+    #if defined(__EMSCRIPTEN__)
+
+      // Emscripten/WebAssembly follows the generic 32-bit POSIX path.
+      #define __RADLINUX__
+      #define __RAD32__
+      #define __RADLITTLEENDIAN__
+      #define RADINLINE inline
+      #define RADRESTRICT __restrict
+      #undef RADSTRUCT
+      #define RADSTRUCT struct __attribute__((__packed__))
+
+    #elif defined(__RADX32__)
 
       #define __RADX86__
       #define __RADMMX__
