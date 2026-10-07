@@ -510,9 +510,20 @@ static struct {
 static int gdraw_shader_type_count = 0;
 
 static GLenum gdraw_get_shader_type(GLuint shader) {
+    // Prefer the actual WebGL/OpenGL shader object type over our local tracker.
+    // This remains correct even if a handle was created through another loader
+    // path or the small tracking table has reached its limit.
+    if (shader) {
+        GLint type = 0;
+        glGetShaderiv(shader, GL_SHADER_TYPE, &type);
+        if (type == (GLint)GL_VERTEX_SHADER || type == (GLint)GL_FRAGMENT_SHADER)
+            return (GLenum)type;
+    }
+
     for (int i = 0; i < gdraw_shader_type_count; i++)
         if (gdraw_shader_types[i].handle == shader)
             return gdraw_shader_types[i].type;
+
     return GL_FRAGMENT_SHADER;
 }
 
