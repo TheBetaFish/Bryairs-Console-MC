@@ -481,10 +481,19 @@ archive_sources_psvita = [
     'PSVitaMedia/Media/DefaultSaveThumbnail64x64.png',
 ]
 
+media_archive_sources = archive_sources + archive_sources_movies1080 + archive_sources_movies720 + archive_sources_linux
+
+# Web builds do not need the 1080p and duplicate platform UI assets. Keep the
+# browser preload bundle to the 720p UI set so mobile browsers do not have to
+# allocate hundreds of megabytes just to mount the virtual filesystem.
+if host_machine.system() == 'emscripten'
+    media_archive_sources = archive_sources + archive_sources_movies720
+endif
+
 media_archive = custom_target(
     'Minecraft.Media_Archive',
     output: 'MediaWindows64.arc',
-    input: archive_sources + archive_sources_movies1080 + archive_sources_movies720 + archive_sources_linux,
+    input: media_archive_sources,
     command: [
         python,
         meson.project_source_root() / 'scripts/pack_arc.py',
