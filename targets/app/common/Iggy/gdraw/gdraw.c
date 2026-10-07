@@ -230,6 +230,48 @@ void IggyDiscardVertexBufferCallback(void* owner, void* buf) {
 typedef GLuint GLhandle;
 typedef gdraw_gl_resourcetype gdraw_resourcetype;
 
+#define glGenBuffers gdraw_glGenBuffers
+#define glDeleteBuffers gdraw_glDeleteBuffers
+#define glBindBuffer gdraw_glBindBuffer
+#define glBufferData gdraw_glBufferData
+#define glMapBuffer gdraw_glMapBuffer
+#define glUnmapBuffer gdraw_glUnmapBuffer
+#define glVertexAttribPointer gdraw_glVertexAttribPointer
+#define glEnableVertexAttribArray gdraw_glEnableVertexAttribArray
+#define glDisableVertexAttribArray gdraw_glDisableVertexAttribArray
+#define glCreateShader gdraw_glCreateShader
+#define glDeleteShader gdraw_glDeleteShader
+#define glShaderSource gdraw_glShaderSource
+#define glCompileShader gdraw_glCompileShader
+#define glGetShaderiv gdraw_glGetShaderiv
+#define glGetShaderInfoLog gdraw_glGetShaderInfoLog
+#define glCreateProgram gdraw_glCreateProgram
+#define glDeleteProgram gdraw_glDeleteProgram
+#define glAttachShader gdraw_glAttachShader
+#define glLinkProgram gdraw_glLinkProgram
+#define glGetUniformLocation gdraw_glGetUniformLocation
+#define glUseProgram gdraw_glUseProgram
+#define glGetProgramiv gdraw_glGetProgramiv
+#define glGetProgramInfoLog gdraw_glGetProgramInfoLog
+#define glUniform1i gdraw_glUniform1i
+#define glUniform4f gdraw_glUniform4f
+#define glUniform4fv gdraw_glUniform4fv
+#define glBindAttribLocation gdraw_glBindAttribLocation
+#define glUniform1f gdraw_glUniform1f
+#define glGenRenderbuffers gdraw_glGenRenderbuffers
+#define glDeleteRenderbuffers gdraw_glDeleteRenderbuffers
+#define glBindRenderbuffer gdraw_glBindRenderbuffer
+#define glRenderbufferStorage gdraw_glRenderbufferStorage
+#define glGenFramebuffers gdraw_glGenFramebuffers
+#define glDeleteFramebuffers gdraw_glDeleteFramebuffers
+#define glBindFramebuffer gdraw_glBindFramebuffer
+#define glCheckFramebufferStatus gdraw_glCheckFramebufferStatus
+#define glFramebufferRenderbuffer gdraw_glFramebufferRenderbuffer
+#define glFramebufferTexture2D gdraw_glFramebufferTexture2D
+#define glGenerateMipmap gdraw_glGenerateMipmap
+#define glBlitFramebuffer gdraw_glBlitFramebuffer
+#define glRenderbufferStorageMultisample gdraw_glRenderbufferStorageMultisample
+
 #define GLE(id, import, procname) static PFNGL##procname##PROC gl##id;
 GDRAW_GL_EXTENSION_LIST
 #undef GLE
