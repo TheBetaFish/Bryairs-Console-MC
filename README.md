@@ -1,117 +1,163 @@
-# Portable LCE
+# Bryair's Console Minecraft — Web Edition
 
----
+A **WebAssembly/Emscripten browser port** of Minecraft: Legacy Console Edition based on the Portable-LCE project.
 
-This project is a heavily modified version of the Minecraft Console Legacy Edition codebase, aimed at porting old Minecraft (TU19/1.6.1) to different platforms and refactoring the codebase to improve organization and use modern C++ features.
+This branch (`emscripten-web-port`) is specifically focused on running the game in a modern web browser. It is **not the native desktop build**.
 
-## Building (Linux)
+## Play in a browser
 
-### Prerequisites
+The project is designed to be published as a static **GitHub Pages** site.
 
-#### System Libraries
+Once the WebAssembly workflow finishes successfully, GitHub Pages receives:
 
-Debian/Ubuntu:
-```bash
-sudo apt-get install -y build-essential libsdl2-dev libgl-dev libglu1-mesa-dev libpthread-stubs0-dev
-```
+- `index.html` — browser shell
+- `Minecraft.Client.html.js` — Emscripten JavaScript runtime
+- `Minecraft.Client.html.wasm` — compiled WebAssembly game
+- `Minecraft.Client.html.data` — packaged game resources
+- browser runtime/service-worker files
 
-Arch/Manjaro:
-```bash
-sudo pacman -S base-devel pkgconf sdl2-compat mesa glu
-```
+The WebAssembly build and Pages deployment are handled automatically by `.github/workflows/web.yml`.
 
-Fedora/Red Hat/Nobara:
-```bash
-sudo dnf install gcc gcc-c++ make SDL2-devel mesa-libGL-devel mesa-libGLU-devel openssl-devel
-```
+The branch is therefore intended to be usable as a **publishable web game**, rather than requiring users to install a compiler or native dependencies.
 
-#### Toolchain
+## Browser features
 
-This project requires a C++23 compiler with full standard library support.
+The web shell currently provides:
 
-**If your distro ships GCC 15+**, you're good - just use the system compiler:
+- Keyboard and mouse input
+- Mouse-look support
+- Mouse buttons and scrolling
+- Browser gamepad detection
+- Fullscreen mode
+- Adjustable render scale (50–100%)
+- FPS and browser diagnostics
+- WebGL renderer diagnostics
+- Persistent render-scale setting
+- Progressive web app manifest
+- Cross-origin isolation support for WebAssembly pthreads
+- Responsive canvas sizing
 
-```bash
-meson setup build
-```
+**Touch controls are intentionally not included yet.**
 
-**If your distro ships an older GCC:** install LLVM with libc++ and use the provided toolchain file:
+## Controls
 
-```bash
-# Debian/Ubuntu
-wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh
-sudo ./llvm.sh 20
-sudo apt install libc++-20-dev libc++abi-20-dev
-```
+The game uses the existing Minecraft Console Edition input system with browser keyboard/mouse support.
 
-```bash
-# Fedora/RHEL (if needed)
-sudo dnf install clang lld libcxx-devel libcxxabi-devel
-```
+| Input | Use |
+| --- | --- |
+| **W A S D** | Movement |
+| **Mouse** | Look |
+| **Left mouse** | Primary mouse action |
+| **Right mouse** | Secondary mouse action |
+| **Mouse wheel** | Scroll / inventory selection |
+| **Space** | Jump |
+| **Shift** | Sneak |
+| **E** | Inventory |
+| **Esc** | Pause / menu |
 
-Then configure with the LLVM native file (see Configure & Build below).
+A compatible game controller can also be detected through the browser's Gamepad API.
 
-#### Meson + Ninja
+## Building the Web Edition
 
-Install [Meson](https://mesonbuild.com/) and [Ninja](https://ninja-build.org/):
+You do **not** need a native GCC/Clang toolchain for this branch.
 
-```bash
-pip install meson ninja
-```
+### Requirements
 
-Or follow the [Meson quickstart guide](https://mesonbuild.com/Quick-guide.html).
+- Linux environment
+- Python 3
+- Meson
+- Ninja
+- Emscripten SDK
 
+The GitHub Actions workflow installs Meson/Ninja and configures the Emscripten SDK automatically.
 
-### Configure & Build
+### Manual build
 
-```bash
-# If using system GCC 15+
-meson setup build
-
-meson configure build -Dui_backend=java -Drenderer=gles
-
-# If using LLVM/libc++
-meson setup --native-file ./scripts/llvm_native.txt build
-
-# Compile
-meson compile -C build
-```
-
-The binary is output to:
-
-```
-./build/targets/app/Minecraft.Client
-```
-
-#### Clean
-
-To perform a clean compilation:
+Install Meson and Ninja:
 
 ```bash
-meson compile --clean -C build
+python3 -m pip install --upgrade meson ninja
 ```
 
-...or to reconfigure an existing build directory:
+Activate Emscripten, then configure:
 
 ```bash
-meson setup --native-file ./scripts/llvm_native.txt build --reconfigure
+meson setup build \
+  --cross-file scripts/emscripten_native.txt \
+  -Dbuildtype=release \
+  -Dunity=off \
+  -Drenderer=gles \
+  -Dui_backend=java \
+  -Denable_vsync=false \
+  -Denable_mimalloc=disabled
 ```
 
-...or to hard reset the build directory:
+Build the browser target:
 
 ```bash
-rm -r ./build
-meson setup --native-file ./scripts/llvm_native.txt build
+meson compile -C build -j2 targets/app/Minecraft.Client.html
 ```
 
----
+The important outputs are:
 
-## Running
-
-Game assets are automatically copied to the build output directory during compilation. Run from that directory:
-
-```sh
-./build/targets/app/Minecraft.Client
+```text
+build/targets/app/Minecraft.Client.html.js
+build/targets/app/Minecraft.Client.html.wasm
+build/targets/app/Minecraft.Client.html.data
 ```
 
+The included `web/` files are used to assemble the final browser site.
+
+## GitHub Pages deployment
+
+Pushing to `emscripten-web-port` automatically starts the WebAssembly workflow.
+
+The workflow:
+
+1. Builds the Emscripten target.
+2. Creates the browser `index.html`.
+3. Copies the WebAssembly and asset files into a Pages site.
+4. Uploads the site as a Pages artifact.
+5. Deploys it to GitHub Pages.
+
+The source branch stays separate from the native build so this branch can concentrate on browser compatibility.
+
+## Performance and memory
+
+Browser memory usage is a major focus of this port.
+
+The web build already avoids packaging several unnecessary native/platform asset sets and uses the 720p UI resources for the initial media archive.
+
+Large audio packages are also **not loaded into the initial browser package**, reducing startup memory pressure. Audio can be moved to a lazy-loaded system later rather than forcing the entire sound library into the initial WebAssembly load.
+
+The goal is to make the game practical on lower-memory phones and other browsers, not just desktop machines.
+
+## Project structure
+
+```text
+web/                            Browser shell and web-only runtime
+scripts/emscripten_native.txt   Meson Emscripten cross file
+.github/workflows/web.yml       WebAssembly + GitHub Pages CI
+targets/app/                    Game application
+targets/platform/               Browser-compatible platform/input/renderer code
+targets/resources/              Game resources and media packaging
+```
+
+## Technical notes
+
+This port uses:
+
+- **Emscripten/WebAssembly**
+- **SDL2**
+- **OpenGL ES/WebGL**
+- **Meson + Ninja**
+- **Web Workers / pthread support**
+- A service worker to provide the cross-origin isolation headers needed by browser threading
+
+The renderer targets WebGL 2 through the GLES path.
+
+## Credits
+
+This project is derived from **Portable-LCE** and the Minecraft: Legacy Console Edition code preserved by that project.
+
+Minecraft is a trademark of Microsoft/Mojang. This repository is an independent technical project and is not affiliated with Microsoft or Mojang.
