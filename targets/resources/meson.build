@@ -55,6 +55,12 @@ archive_sources_windows64 = [
     'Windows64Media/Media/DLCOffersMenu1080.swf',
     'Windows64Media/Media/DLCOffersMenuVita.swf',
 ]
+archive_sources_web_core = [
+    'Windows64Media/Media/Tutorial.pck',
+    'Windows64Media/Media/skinWin.swf',
+    'Windows64Media/Media/skinHDWin.swf',
+]
+
 archive_sources_movies1080 = [
     'Common/Media/skinHDGraphics.swf',
     'Common/Media/skinHDGraphicsHud.swf',
@@ -487,7 +493,7 @@ media_archive_sources = archive_sources + archive_sources_movies1080 + archive_s
 # browser preload bundle to the 720p UI set so mobile browsers do not have to
 # allocate hundreds of megabytes just to mount the virtual filesystem.
 if host_machine.system() == 'emscripten'
-    media_archive_sources = archive_sources + archive_sources_movies720
+    media_archive_sources = archive_sources + archive_sources_web_core + archive_sources_movies720
 endif
 
 media_archive = custom_target(
