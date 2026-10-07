@@ -8,12 +8,30 @@
   <link rel="manifest" href="./manifest.webmanifest">
   <title>Bryair's Console Minecraft</title>
   <style>
-    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}
+    :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070a}
     body{display:flex;align-items:center;justify-content:center}
     #canvas{width:100vw;height:100vh;display:block;background:#000;outline:none}
-    #status{position:fixed;left:12px;bottom:12px;color:#fff;background:#000c;
-      font:14px monospace;padding:8px;border-radius:4px;z-index:10}
-    #progress{width:260px}
+    #loading-screen{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(circle at 50% 42%,#18202a 0,#0a0d11 42%,#030405 100%);
+      color:#fff;transition:opacity .45s ease,visibility .45s ease}
+    #loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
+    #loading-card{width:min(520px,calc(100vw - 40px));padding:34px 30px 28px;text-align:center;
+      border:1px solid #3b4652;border-radius:14px;background:linear-gradient(180deg,#151b22f2,#0b0f14f2);
+      box-shadow:0 18px 60px #000b,0 0 0 1px #0008 inset}
+    #loading-mark{width:54px;height:54px;margin:0 auto 18px;border-radius:10px;
+      background:linear-gradient(135deg,#65b8ff 0 50%,#2c78c7 50% 100%);
+      box-shadow:0 7px 24px #0008;position:relative;overflow:hidden}
+    #loading-mark::before,#loading-mark::after{content:"";position:absolute;background:#fff3}
+    #loading-mark::before{width:10px;height:10px;left:11px;top:12px;box-shadow:22px 0 #fff3}
+    #loading-mark::after{width:32px;height:7px;left:11px;bottom:11px}
+    #loading-title{margin:0;font-size:clamp(23px,4vw,34px);font-weight:700;letter-spacing:.02em}
+    #loading-subtitle{margin:8px 0 22px;color:#9eabb8;font-size:14px}
+    #loading-track{height:10px;overflow:hidden;border-radius:999px;background:#252d35;border:1px solid #3c4650}
+    #loading-fill{width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#3e90df,#76c7ff);
+      box-shadow:0 0 18px #4aa9ff88;transition:width .2s ease}
+    #loading-message{margin-top:13px;min-height:20px;color:#c7d0d9;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+    #status{display:none}
     #web-controls{position:fixed;right:12px;top:12px;display:flex;gap:6px;z-index:20;opacity:.8}
     #web-controls button{font:13px monospace;color:#fff;background:#222d;
       border:1px solid #888;border-radius:4px;padding:7px 9px}
@@ -26,7 +44,16 @@
 </head>
 <body>
   <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-  <div id="status">Loading… <progress id="progress" value="0" max="100"></progress></div>
+  <div id="loading-screen">
+    <div id="loading-card">
+      <div id="loading-mark" aria-hidden="true"></div>
+      <h1 id="loading-title">Bryairs Minecraft Web Port</h1>
+      <div id="loading-subtitle">WebAssembly edition</div>
+      <div id="loading-track" aria-label="Loading progress"><div id="loading-fill"></div></div>
+      <div id="loading-message">Starting WebAssembly…</div>
+    </div>
+  </div>
+  <div id="status"></div>
   <div id="web-controls">
     <button id="fullscreen" type="button">Fullscreen</button>
     <button id="settings" type="button">Web Settings</button>
@@ -53,12 +80,28 @@
     var Module = {
       canvas: document.getElementById('canvas'),
       setStatus: function(text) {
-        var s = document.getElementById('status');
+        var s = document.getElementById('loading-message');
         if (s) s.textContent = text;
       },
       monitorRunDependencies: function(left) {
-        var p = document.getElementById('progress');
-        if (p) p.value = 100 - Math.min(left, 100);
+        var fill = document.getElementById('loading-fill');
+        if (!this._maxDependencies) this._maxDependencies = left;
+        if (fill && this._maxDependencies) {
+          var done = Math.max(0, Math.min(1, 1 - (left / this._maxDependencies)));
+          fill.style.width = (done * 100) + '%';
+        }
+        var msg = document.getElementById('loading-message');
+        if (msg && left > 0) msg.textContent = 'Loading game data…';
+      },
+      onRuntimeInitialized: function() {
+        var fill = document.getElementById('loading-fill');
+        if (fill) fill.style.width = '100%';
+        var msg = document.getElementById('loading-message');
+        if (msg) msg.textContent = 'Launching game…';
+        var screen = document.getElementById('loading-screen');
+        if (screen) {
+          setTimeout(function() { screen.classList.add('hidden'); }, 350);
+        }
       }
     };
   </script>
