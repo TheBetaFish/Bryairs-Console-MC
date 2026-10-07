@@ -34,7 +34,6 @@ jobs:
           shopt -s dotglob
           cp -a source/. .
           rm -rf source
-          git status --short || true
 
       - name: Set up Emscripten
         uses: emscripten-core/setup-emsdk@v16
@@ -65,10 +64,11 @@ jobs:
           set -euo pipefail
           rm -rf site
           mkdir -p site
-          cp build/targets/app/Minecraft.Client.html site/index.html
-          cp build/targets/app/Minecraft.Client.js site/
-          cp build/targets/app/Minecraft.Client.wasm site/
-          cp build/targets/app/Minecraft.Client.data site/
+          sed 's|{{{ SCRIPT }}}|<script src="Minecraft.Client.html.js"></script>|' \
+            web/shell.html > site/index.html
+          cp build/targets/app/Minecraft.Client.html.js site/
+          cp build/targets/app/Minecraft.Client.html.wasm site/
+          cp build/targets/app/Minecraft.Client.html.data site/
           cp web/coi-serviceworker.js site/
           touch site/.nojekyll
           ls -lh site
