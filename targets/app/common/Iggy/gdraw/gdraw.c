@@ -116,6 +116,9 @@ typedef void(APIENTRY* PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC)(GLenum, GLsizei,
 #include <string.h>
 
 #include "SDL_video.h"
+#if defined(__EMSCRIPTEN__)
+#include <glad/glad.h>
+#endif
 #include "app/common/Iggy/include/iggy.h"
 
 #ifndef _ENABLEIGGY
@@ -359,6 +362,30 @@ static void load_extensions(void) {
     TRY(glBindAttribLocation, "glBindAttribLocationARB",
         "glBindAttribLocation");
 
+#if defined(__EMSCRIPTEN__)
+    // Emscripten provides static GL entry points. Using SDL_GL_GetProcAddress()
+    // here adds dynamic dispatch and, more importantly, can hand the Iggy
+    // shader path handles that do not match the GLAD WebGL object table.
+    gdraw_glCreateShader = glad_glCreateShader;
+    gdraw_glDeleteShader = glad_glDeleteShader;
+    gdraw_glShaderSource = glad_glShaderSource;
+    gdraw_glCompileShader = glad_glCompileShader;
+    gdraw_glGetShaderiv = glad_glGetShaderiv;
+    gdraw_glGetShaderInfoLog = glad_glGetShaderInfoLog;
+    gdraw_glCreateProgram = glad_glCreateProgram;
+    gdraw_glDeleteProgram = glad_glDeleteProgram;
+    gdraw_glAttachShader = glad_glAttachShader;
+    gdraw_glLinkProgram = glad_glLinkProgram;
+    gdraw_glGetUniformLocation = glad_glGetUniformLocation;
+    gdraw_glUseProgram = glad_glUseProgram;
+    gdraw_glGetProgramiv = glad_glGetProgramiv;
+    gdraw_glGetProgramInfoLog = glad_glGetProgramInfoLog;
+    gdraw_glUniform1i = glad_glUniform1i;
+    gdraw_glUniform4f = glad_glUniform4f;
+    gdraw_glUniform4fv = glad_glUniform4fv;
+    gdraw_glBindAttribLocation = glad_glBindAttribLocation;
+#endif
+
     TRY(glGenBuffers, "glGenBuffersARB", "glGenBuffers");
     TRY(glDeleteBuffers, "glDeleteBuffersARB", "glDeleteBuffers");
     TRY(glBindBuffer, "glBindBufferARB", "glBindBuffer");
@@ -396,6 +423,12 @@ static void load_extensions(void) {
     // Save raw pointers before we #define over the names below
     gdraw_real_vtxattrib =
         (gdraw_vtxattrib_fn)SDL_GL_GetProcAddress("glVertexAttribPointer");
+#if defined(__EMSCRIPTEN__)
+    gdraw_real_createshader = (gdraw_createshader_fn)glad_glCreateShader;
+    gdraw_real_shadersource = (gdraw_shadersource_fn)glad_glShaderSource;
+    gdraw_real_compileshader = (gdraw_compileshader_fn)glad_glCompileShader;
+    gdraw_real_linkprogram = (gdraw_linkprogram_fn)glad_glLinkProgram;
+#else
     gdraw_real_createshader =
         (gdraw_createshader_fn)SDL_GL_GetProcAddress("glCreateShader");
     gdraw_real_shadersource =
@@ -404,12 +437,17 @@ static void load_extensions(void) {
         (gdraw_compileshader_fn)SDL_GL_GetProcAddress("glCompileShader");
     gdraw_real_linkprogram =
         (gdraw_linkprogram_fn)SDL_GL_GetProcAddress("glLinkProgram");
+#endif
     gdraw_real_teximage2d =
         (gdraw_teximage2d_fn)SDL_GL_GetProcAddress("glTexImage2D");
     gdraw_real_texsubimage2d =
         (gdraw_texsubimage2d_fn)SDL_GL_GetProcAddress("glTexSubImage2D");
+#if defined(__EMSCRIPTEN__)
+    gdraw_real_useprogram = (gdraw_useprogram_fn)glad_glUseProgram;
+#else
     gdraw_real_useprogram =
         (gdraw_useprogram_fn)SDL_GL_GetProcAddress("glUseProgram");
+#endif
     gdraw_real_drawelements =
         (gdraw_drawelements_fn)SDL_GL_GetProcAddress("glDrawElements");
 
