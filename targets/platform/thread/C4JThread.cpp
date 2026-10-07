@@ -31,6 +31,11 @@
 #include "platform/thread/C4JThread.h"
 #include "platform/thread/ShutdownManager.h"
 
+#if defined(__EMSCRIPTEN__)
+extern "C" int pthread_setname_np(pthread_t, const char*) __attribute__((weak));
+extern "C" int pthread_setname_np(pthread_t, const char*) { return 0; }
+#endif
+
 class Level;
 
 thread_local C4JThread* C4JThread::ms_currentThread = nullptr;
