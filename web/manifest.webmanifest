@@ -1,0 +1,9 @@
+{
+  "name": "Bryair's Console Minecraft",
+  "short_name": "Console Minecraft",
+  "start_url": "./",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "description": "Bryair's Console Minecraft WebAssembly build"
+}
