@@ -12,8 +12,6 @@ if host_machine.system() == 'emscripten'
         '--shell-file', meson.project_source_root() / 'web/shell.html',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common@Common',
         '--preload-file', meson.project_build_root() / 'targets/resources/MediaWindows64.arc@Common/Media/MediaWindows64.arc',
-        '--preload-file', meson.project_source_root() / 'targets/resources/Common/music@music',
-        '--preload-file', meson.project_source_root() / 'targets/resources/DurangoMedia/Sound@Sound',
         '-sENVIRONMENT=web',
         '-sEXIT_RUNTIME=0',
     ]
