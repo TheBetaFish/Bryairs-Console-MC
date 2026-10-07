@@ -12,6 +12,7 @@
 #include "app/common/UI/ConsoleUIController.h"
 #include "minecraft/IGameServices.h"
 #include "minecraft/client/Minecraft.h"
+#include "minecraft/client/Options.h"
 #include "minecraft/client/gui/Button.h"
 #include "minecraft/client/gui/ConfirmScreen.h"
 #include "minecraft/client/gui/CreateWorldScreen.h"
