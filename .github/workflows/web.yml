@@ -3,6 +3,8 @@ name: Build and deploy WebAssembly
 on:
   push:
     branches: [emscripten-web-port]
+    paths-ignore:
+      - README.md
   workflow_dispatch:
 
 permissions:
