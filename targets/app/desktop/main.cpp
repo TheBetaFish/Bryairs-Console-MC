@@ -102,6 +102,12 @@ bool g_bWidescreen = true;
 
 #ifdef __EMSCRIPTEN__
 static Minecraft* g_pMinecraft = nullptr;
+static bool g_webFirstFramePresented = false;
+EM_JS(void, web_notify_first_frame, (), {
+    if (typeof Module !== "undefined" && Module.webGameReady) {
+        Module.webGameReady();
+    }
+});
 static bool g_bTrialTimerDisplayed = true;
 
 static void MainLoopIteration() {
@@ -151,6 +157,12 @@ static void MainLoopIteration() {
     ui.tick();
     ui.render();
     PlatformRenderer.Present();
+#ifdef __EMSCRIPTEN__
+    if (!g_webFirstFramePresented) {
+        g_webFirstFramePresented = true;
+        web_notify_first_frame();
+    }
+#endif
     ui.CheckMenuDisplayed();
 
     if (app.uiGameDefinedDataChangedBitmask != 0) {
