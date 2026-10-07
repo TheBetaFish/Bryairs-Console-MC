@@ -64,11 +64,12 @@ jobs:
           set -euo pipefail
           rm -rf site
           mkdir -p site
-          sed 's|{{{ SCRIPT }}}|<script src="Minecraft.Client.html.js"></script>|' \
-            web/shell.html > site/index.html
+          cp web/shell.html site/index.html
           cp build/targets/app/Minecraft.Client.html.js site/
           cp build/targets/app/Minecraft.Client.html.wasm site/
           cp build/targets/app/Minecraft.Client.html.data site/
+          cp web/web-runtime.js site/
+          cp web/manifest.webmanifest site/
           cp web/coi-serviceworker.js site/
           touch site/.nojekyll
           ls -lh site
