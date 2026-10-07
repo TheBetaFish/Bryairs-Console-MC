@@ -9,11 +9,12 @@ on:
 
 permissions:
   contents: read
+  actions: write
   pages: write
   id-token: write
 
 concurrency:
-  group: web-wasm-${{ github.ref }}
+  group: ${{ contains(github.event.head_commit.message, '[bootstrap-wasm-run]') && format('web-wasm-bootstrap-{0}', github.run_id) || format('web-wasm-{0}', github.ref) }}
   cancel-in-progress: true
 
 jobs:
@@ -36,6 +37,18 @@ jobs:
           shopt -s dotglob
           cp -a source/. .
           rm -rf source
+
+      - name: Cancel stale WebAssembly runs
+        if: contains(github.event.head_commit.message, '[bootstrap-wasm-run]')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for run_id in $(gh run list --workflow web.yml --branch "$GITHUB_REF_NAME" --json databaseId,status --limit 20 --jq '.[] | select(.status == "queued" or .status == "in_progress") | .databaseId'); do
+            if [ "$run_id" != "$GITHUB_RUN_ID" ]; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/cancel" || true
+            fi
+          done
 
       - name: Set up Emscripten
         uses: emscripten-core/setup-emsdk@v16
