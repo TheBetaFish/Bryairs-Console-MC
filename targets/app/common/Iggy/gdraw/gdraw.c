@@ -368,7 +368,7 @@ static void load_extensions(void) {
     // shader path handles that do not match the GLAD WebGL object table.
     gdraw_glCreateShader = glad_glCreateShader;
     gdraw_glDeleteShader = glad_glDeleteShader;
-    gdraw_glShaderSource = glad_glShaderSource;
+    gdraw_glShaderSource = (PFNGLSHADERSOURCEPROC)glad_glShaderSource;
     gdraw_glCompileShader = glad_glCompileShader;
     gdraw_glGetShaderiv = glad_glGetShaderiv;
     gdraw_glGetShaderInfoLog = glad_glGetShaderInfoLog;
