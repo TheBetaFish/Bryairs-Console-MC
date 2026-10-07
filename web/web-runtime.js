@@ -6,6 +6,9 @@
   const scale = document.getElementById('render-scale');
   const scaleValue = document.getElementById('scale-value');
   const diagnostics = document.getElementById('web-diagnostics');
+  let frames = 0;
+  let fps = 0;
+  let fpsTime = performance.now();
 
   function resizeCanvas() {
     const factor = Number(scale.value) / 100;
@@ -52,6 +55,7 @@
   function updateDiagnostics() {
     if (!diagnostics) return;
     const parts = [
+      'FPS: ' + fps,
       'Viewport: ' + window.innerWidth + 'x' + window.innerHeight,
       'Canvas: ' + canvas.width + 'x' + canvas.height,
       'Gamepads: ' + (navigator.getGamepads ? Array.from(navigator.getGamepads()).filter(Boolean).length : 0)
@@ -69,8 +73,32 @@
     diagnostics.textContent = parts.join('\n');
   }
 
+  function frameCounter(now) {
+    frames++;
+    if (now - fpsTime >= 1000) {
+      fps = frames;
+      frames = 0;
+      fpsTime = now;
+    }
+    requestAnimationFrame(frameCounter);
+  }
+
+  function reportError(message) {
+    const status = document.getElementById('status');
+    if (status) status.textContent = 'WebAssembly error: ' + message;
+    console.error(message);
+  }
+
+  window.addEventListener('error', event => {
+    if (event.error || event.message) reportError(event.error?.message || event.message);
+  });
+  window.addEventListener('unhandledrejection', event => {
+    reportError(event.reason?.message || String(event.reason));
+  });
   window.addEventListener('gamepadconnected', updateDiagnostics);
   window.addEventListener('gamepaddisconnected', updateDiagnostics);
+
+  requestAnimationFrame(frameCounter);
   setInterval(updateDiagnostics, 2000);
   resizeCanvas();
   updateDiagnostics();
