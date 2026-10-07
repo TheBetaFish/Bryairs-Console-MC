@@ -102,7 +102,7 @@
         #define __RADMAC__
         #undef RADSTRUCT
         #define RADSTRUCT struct __attribute__((__packed__))
-      #elif defined(__linux__)
+      #elif defined(__linux__) || defined(__EMSCRIPTEN__)
         #define __RADLINUX__
         #undef RADSTRUCT
         #define RADSTRUCT struct __attribute__((__packed__))
