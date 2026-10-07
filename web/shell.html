@@ -31,7 +31,9 @@
     #loading-fill{width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#3e90df,#76c7ff);
       box-shadow:0 0 18px #4aa9ff88;transition:width .2s ease}
     #loading-message{margin-top:13px;min-height:20px;color:#c7d0d9;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
-    #status{display:none}
+    #status{display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:110;
+      color:#fff;background:#3a1010eF;border:1px solid #8d4444;border-radius:6px;padding:10px;
+      font:13px ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;max-height:30vh;overflow:auto}
     #web-controls{position:fixed;right:12px;top:12px;display:flex;gap:6px;z-index:20;opacity:.8}
     #web-controls button{font:13px monospace;color:#fff;background:#222d;
       border:1px solid #888;border-radius:4px;padding:7px 9px}
@@ -94,13 +96,28 @@
         if (msg && left > 0) msg.textContent = 'Loading game data…';
       },
       onRuntimeInitialized: function() {
+        var msg = document.getElementById('loading-message');
+        if (msg) msg.textContent = 'Starting Minecraft…';
+      },
+      webGameReady: function() {
         var fill = document.getElementById('loading-fill');
         if (fill) fill.style.width = '100%';
         var msg = document.getElementById('loading-message');
-        if (msg) msg.textContent = 'Launching game…';
+        if (msg) msg.textContent = 'Ready';
         var screen = document.getElementById('loading-screen');
         if (screen) {
-          setTimeout(function() { screen.classList.add('hidden'); }, 350);
+          setTimeout(function() { screen.classList.add('hidden'); }, 250);
+        }
+      },
+      print: function(text) {
+        console.log(text);
+      },
+      printErr: function(text) {
+        console.error(text);
+        var status = document.getElementById('status');
+        if (status) {
+          status.style.display = 'block';
+          status.textContent = String(text);
         }
       }
     };
