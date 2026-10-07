@@ -62,12 +62,14 @@ jobs:
 
       - name: Assemble Pages site
         run: |
+          set -euo pipefail
           rm -rf site
           mkdir -p site
-          cp build/targets/app/Minecraft.Client.* site/
-          cp web/coi-serviceworker.js site/
           cp build/targets/app/Minecraft.Client.html site/index.html
-          rm -f site/Minecraft.Client.html
+          cp build/targets/app/Minecraft.Client.js site/
+          cp build/targets/app/Minecraft.Client.wasm site/
+          cp build/targets/app/Minecraft.Client.data site/
+          cp web/coi-serviceworker.js site/
           touch site/.nojekyll
           ls -lh site
 
