@@ -118,6 +118,13 @@ typedef void(APIENTRY* PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC)(GLenum, GLsizei,
 #include "SDL_video.h"
 #if defined(__EMSCRIPTEN__)
 #include <glad/glad.h>
+
+#if defined(__EMSCRIPTEN__)
+static void APIENTRY gdraw_emscripten_ShaderSource(
+    GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths) {
+    glad_glShaderSource(shader, count, (const GLchar* const*)strings, lengths);
+}
+#endif
 #endif
 #include "app/common/Iggy/include/iggy.h"
 
@@ -368,7 +375,7 @@ static void load_extensions(void) {
     // shader path handles that do not match the GLAD WebGL object table.
     gdraw_glCreateShader = glad_glCreateShader;
     gdraw_glDeleteShader = glad_glDeleteShader;
-    gdraw_glShaderSource = (PFNGLSHADERSOURCEPROC)glad_glShaderSource;
+    gdraw_glShaderSource = gdraw_emscripten_ShaderSource;
     gdraw_glCompileShader = glad_glCompileShader;
     gdraw_glGetShaderiv = glad_glGetShaderiv;
     gdraw_glGetShaderInfoLog = glad_glGetShaderInfoLog;
