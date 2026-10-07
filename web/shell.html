@@ -14,13 +14,12 @@
     #status{position:fixed;left:12px;bottom:12px;color:#fff;background:#000c;
       font:14px monospace;padding:8px;border-radius:4px;z-index:10}
     #progress{width:260px}
-    #web-controls{position:fixed;right:12px;top:12px;display:flex;gap:6px;
-      z-index:20;opacity:.8}
+    #web-controls{position:fixed;right:12px;top:12px;display:flex;gap:6px;z-index:20;opacity:.8}
     #web-controls button{font:13px monospace;color:#fff;background:#222d;
       border:1px solid #888;border-radius:4px;padding:7px 9px}
     #web-panel{position:fixed;right:12px;top:52px;display:none;z-index:20;
       color:#fff;background:#111e;border:1px solid #777;border-radius:5px;
-      padding:10px;font:13px monospace;min-width:220px}
+      padding:10px;font:13px monospace;min-width:220px;white-space:pre-line}
     #web-panel label{display:block;margin:7px 0}
     #web-panel input{width:100%}
   </style>
@@ -28,7 +27,6 @@
 <body>
   <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
   <div id="status">Loading… <progress id="progress" value="0" max="100"></progress></div>
-
   <div id="web-controls">
     <button id="fullscreen" type="button">Fullscreen</button>
     <button id="settings" type="button">Web Settings</button>
@@ -43,7 +41,13 @@
 
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./coi-serviceworker.js').catch(console.error);
+      navigator.serviceWorker.register('./coi-serviceworker.js').then(function() {
+        if (!navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(function() {
+            location.reload();
+          });
+        }
+      }).catch(console.error);
     }
 
     var Module = {
