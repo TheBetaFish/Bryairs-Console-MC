@@ -23,6 +23,7 @@ if host_machine.system() == 'emscripten'
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/mob@Common/res/mob',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/terrain@Common/res/terrain',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/title@Common/res/title',
+        '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/TitleUpdate/res@Common/res/TitleUpdate/res',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/pack.png@Common/res/pack.png',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/particles.png@Common/res/particles.png',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/terrain.png@Common/res/terrain.png',
