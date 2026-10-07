@@ -27,7 +27,6 @@ if host_machine.system() == 'emscripten'
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/pack.png@Common/res/pack.png',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/particles.png@Common/res/particles.png',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/terrain.png@Common/res/terrain.png',
-        '--preload-file', meson.project_source_root() / 'targets/resources/Common/res/TitleUpdate/res@Common/res/TitleUpdate/res',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/Media/Graphics@Common/Media/Graphics',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/Media/font/Mojang Font_11.ttf@Common/Media/font/Mojang Font_11.ttf',
         '--preload-file', meson.project_source_root() / 'targets/resources/Common/Media/font/Mojang Font_7.ttf@Common/Media/font/Mojang Font_7.ttf',
