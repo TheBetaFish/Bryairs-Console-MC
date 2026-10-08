@@ -330,6 +330,73 @@ static GLuint compileShader(GLenum type, const char* src) {
     return s;
 }
 
+#if defined(__EMSCRIPTEN__)
+extern "C" GLuint bryair_glCreateShader(GLenum type) {
+    return glad_glCreateShader(type);
+}
+extern "C" void bryair_glDeleteShader(GLuint shader) {
+    glad_glDeleteShader(shader);
+}
+extern "C" void bryair_glShaderSource(GLuint shader, GLsizei count,
+                                      const GLchar** strings,
+                                      const GLint* lengths) {
+    glad_glShaderSource(shader, count, strings, lengths);
+}
+extern "C" void bryair_glCompileShader(GLuint shader) {
+    glad_glCompileShader(shader);
+}
+extern "C" void bryair_glGetShaderiv(GLuint shader, GLenum pname, GLint* params) {
+    glad_glGetShaderiv(shader, pname, params);
+}
+extern "C" void bryair_glGetShaderInfoLog(GLuint shader, GLsizei maxLength,
+                                          GLsizei* length, GLchar* infoLog) {
+    glad_glGetShaderInfoLog(shader, maxLength, length, infoLog);
+}
+extern "C" GLuint bryair_glCreateProgram(void) {
+    return glad_glCreateProgram();
+}
+extern "C" void bryair_glDeleteProgram(GLuint program) {
+    glad_glDeleteProgram(program);
+}
+extern "C" void bryair_glAttachShader(GLuint program, GLuint shader) {
+    glad_glAttachShader(program, shader);
+}
+extern "C" void bryair_glLinkProgram(GLuint program) {
+    glad_glLinkProgram(program);
+}
+extern "C" GLint bryair_glGetUniformLocation(GLuint program, const GLchar* name) {
+    return glad_glGetUniformLocation(program, name);
+}
+extern "C" void bryair_glUseProgram(GLuint program) {
+    glad_glUseProgram(program);
+}
+extern "C" void bryair_glGetProgramiv(GLuint program, GLenum pname, GLint* params) {
+    glad_glGetProgramiv(program, pname, params);
+}
+extern "C" void bryair_glGetProgramInfoLog(GLuint program, GLsizei maxLength,
+                                           GLsizei* length, GLchar* infoLog) {
+    glad_glGetProgramInfoLog(program, maxLength, length, infoLog);
+}
+extern "C" void bryair_glUniform1i(GLint location, GLint v0) {
+    glad_glUniform1i(location, v0);
+}
+extern "C" void bryair_glUniform4f(GLint location, GLfloat v0, GLfloat v1,
+                                   GLfloat v2, GLfloat v3) {
+    glad_glUniform4f(location, v0, v1, v2, v3);
+}
+extern "C" void bryair_glUniform4fv(GLint location, GLsizei count,
+                                    const GLfloat* value) {
+    glad_glUniform4fv(location, count, value);
+}
+extern "C" void bryair_glUniform1f(GLint location, GLfloat v0) {
+    glad_glUniform1f(location, v0);
+}
+extern "C" void bryair_glBindAttribLocation(GLuint program, GLuint index,
+                                            const GLchar* name) {
+    glad_glBindAttribLocation(program, index, name);
+}
+#endif
+
 static GLuint linkProgram(GLuint v, GLuint f) {
     GLuint p = glCreateProgram();
     glAttachShader(p, v);
