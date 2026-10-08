@@ -69,8 +69,9 @@
   </div>
 
   <script>
+    var BUILD_VERSION = 'f1ab99f';
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./coi-serviceworker.js').then(function() {
+      navigator.serviceWorker.register('./coi-serviceworker.js?v=' + BUILD_VERSION).then(function() {
         if (!navigator.serviceWorker.controller) {
           navigator.serviceWorker.ready.then(function() {
             location.reload();
@@ -80,6 +81,12 @@
     }
 
     var Module = {
+      locateFile: function(path, prefix) {
+        if (path.endsWith('.wasm') || path.endsWith('.data')) {
+          return prefix + path + '?v=' + BUILD_VERSION;
+        }
+        return prefix + path;
+      },
       canvas: document.getElementById('canvas'),
       setStatus: function(text) {
         var s = document.getElementById('loading-message');
@@ -122,7 +129,7 @@
       }
     };
   </script>
-  <script src="Minecraft.Client.html.js"></script>
+  <script src="Minecraft.Client.html.js?v=f1ab99f"></script>
   <script src="web-runtime.js"></script>
 </body>
 </html>
