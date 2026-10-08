@@ -1,0 +1,116 @@
+name: Artifact WebGL smoke test
+
+on:
+  push:
+    branches: [emscripten-web-port]
+    paths:
+      - .github/workflows/web-artifact-smoke.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download deployed Pages artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifact
+          gh run download 37789295854 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name github-pages \
+            --dir artifact
+
+          mkdir -p site
+          tar -xf artifact/artifact.tar -C site
+          find site -maxdepth 2 -type f -printf '%P %s bytes\\n'
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@latest >/dev/null 2>&1
+          npx playwright install chromium --with-deps >/dev/null 2>&1
+
+      - name: Run WebGL test
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory site > /tmp/bryairs-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" || true' EXIT
+
+          node --input-type=module <<'EOF'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: [
+              '--no-sandbox',
+              '--disable-dev-shm-usage',
+              '--enable-webgl',
+              '--use-angle=swiftshader',
+            ],
+          });
+
+          const page = await browser.newPage();
+          const errors = [];
+
+          page.on('console', msg => {
+            const line = '[browser:' + msg.type() + '] ' + msg.text();
+            console.log(line);
+            if (msg.type() === 'error') errors.push(line);
+          });
+
+          page.on('pageerror', error => {
+            const line = '[pageerror] ' + error.message;
+            console.log(line);
+            errors.push(line);
+          });
+
+          try {
+            await page.goto('http://127.0.0.1:4173/', {
+              waitUntil: 'domcontentloaded',
+              timeout: 60000,
+            });
+
+            console.log('[smoke] url=' + page.url());
+            console.log('[smoke] title=' + await page.title());
+            console.log('[smoke] statusExists=' +
+              await page.locator('#status').count());
+
+            await page.waitForTimeout(20000);
+
+            const status = await page.locator('#status').textContent();
+            const hidden = await page.locator('#loading-screen').evaluate(
+              el => el.classList.contains('hidden')
+            );
+
+            console.log('[smoke] loadingHidden=' + hidden);
+            console.log('[smoke] status=' + (status || '(empty)'));
+
+            const relevant = errors.filter(x =>
+              /attachShader|shader|WebGL|WebAssembly|GLSL/i.test(x)
+            );
+
+            console.log('[smoke] WebGL-related errors=' + relevant.length);
+
+            if (relevant.length) {
+              throw new Error('WEBGL FAILURE:\\n' + relevant.join('\\n'));
+            }
+
+            if (!hidden) {
+              throw new Error(
+                'Game never presented its first frame. Status: ' +
+                (status || '(empty)')
+              );
+            }
+
+            console.log('[smoke] PASS');
+          } finally {
+            await browser.close();
+          }
+          EOF
