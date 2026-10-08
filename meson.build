@@ -47,7 +47,6 @@ if host_machine.system() == 'emscripten'
         '-sMAX_WEBGL_VERSION=2',
         '--use-port=zlib',
         '-sALLOW_MEMORY_GROWTH=1',
-        '-sGROWABLE_ARRAYBUFFERS=1',
         '-sMEMORY_GROWTH_GEOMETRIC_STEP=0',
         '-sMEMORY_GROWTH_LINEAR_STEP=67108864',
         '-sLZ4=1',
