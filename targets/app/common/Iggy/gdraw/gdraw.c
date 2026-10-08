@@ -116,16 +116,6 @@ typedef void(APIENTRY* PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC)(GLenum, GLsizei,
 #include <string.h>
 
 #include "SDL_video.h"
-#if defined(__EMSCRIPTEN__)
-#include <glad/glad.h>
-
-#if defined(__EMSCRIPTEN__)
-static void APIENTRY gdraw_emscripten_ShaderSource(
-    GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths) {
-    glad_glShaderSource(shader, count, (const GLchar* const*)strings, lengths);
-}
-#endif
-#endif
 #include "app/common/Iggy/include/iggy.h"
 
 #ifndef _ENABLEIGGY
@@ -232,6 +222,28 @@ void IggyDiscardVertexBufferCallback(void* owner, void* buf) {
 // Shared .inl
 #define gdraw_GLx_(id) gdraw_GL_##id
 #define GDRAW_GLx_(id) GDRAW_GL_##id
+#if defined(__EMSCRIPTEN__)
+extern GLuint bryair_glCreateShader(GLenum type);
+extern void bryair_glDeleteShader(GLuint shader);
+extern void bryair_glShaderSource(GLuint shader, GLsizei count, const GLchar** strings, const GLint* lengths);
+extern void bryair_glCompileShader(GLuint shader);
+extern void bryair_glGetShaderiv(GLuint shader, GLenum pname, GLint* params);
+extern void bryair_glGetShaderInfoLog(GLuint shader, GLsizei maxLength, GLsizei* length, GLchar* infoLog);
+extern GLuint bryair_glCreateProgram(void);
+extern void bryair_glDeleteProgram(GLuint program);
+extern void bryair_glAttachShader(GLuint program, GLuint shader);
+extern void bryair_glLinkProgram(GLuint program);
+extern GLint bryair_glGetUniformLocation(GLuint program, const GLchar* name);
+extern void bryair_glUseProgram(GLuint program);
+extern void bryair_glGetProgramiv(GLuint program, GLenum pname, GLint* params);
+extern void bryair_glGetProgramInfoLog(GLuint program, GLsizei maxLength, GLsizei* length, GLchar* infoLog);
+extern void bryair_glUniform1i(GLint location, GLint v0);
+extern void bryair_glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+extern void bryair_glUniform4fv(GLint location, GLsizei count, const GLfloat* value);
+extern void bryair_glUniform1f(GLint location, GLfloat v0);
+extern void bryair_glBindAttribLocation(GLuint program, GLuint index, const GLchar* name);
+#endif
+
 #define GDRAW_SHADERS "gdraw_gl_shaders.inl"
 
 // GLhandleARB is void* but shader functions use GLuint values.
@@ -370,27 +382,26 @@ static void load_extensions(void) {
         "glBindAttribLocation");
 
 #if defined(__EMSCRIPTEN__)
-    // Emscripten provides static GL entry points. Using SDL_GL_GetProcAddress()
-    // here adds dynamic dispatch and, more importantly, can hand the Iggy
-    // shader path handles that do not match the GLAD WebGL object table.
-    gdraw_glCreateShader = glad_glCreateShader;
-    gdraw_glDeleteShader = glad_glDeleteShader;
-    gdraw_glShaderSource = gdraw_emscripten_ShaderSource;
-    gdraw_glCompileShader = glad_glCompileShader;
-    gdraw_glGetShaderiv = glad_glGetShaderiv;
-    gdraw_glGetShaderInfoLog = glad_glGetShaderInfoLog;
-    gdraw_glCreateProgram = glad_glCreateProgram;
-    gdraw_glDeleteProgram = glad_glDeleteProgram;
-    gdraw_glAttachShader = glad_glAttachShader;
-    gdraw_glLinkProgram = glad_glLinkProgram;
-    gdraw_glGetUniformLocation = glad_glGetUniformLocation;
-    gdraw_glUseProgram = glad_glUseProgram;
-    gdraw_glGetProgramiv = glad_glGetProgramiv;
-    gdraw_glGetProgramInfoLog = glad_glGetProgramInfoLog;
-    gdraw_glUniform1i = glad_glUniform1i;
-    gdraw_glUniform4f = glad_glUniform4f;
-    gdraw_glUniform4fv = glad_glUniform4fv;
-    gdraw_glBindAttribLocation = glad_glBindAttribLocation;
+    // Keep Iggy on the same WebGL object table as the main renderer.
+    glCreateShader = bryair_glCreateShader;
+    glDeleteShader = bryair_glDeleteShader;
+    glShaderSource = bryair_glShaderSource;
+    glCompileShader = bryair_glCompileShader;
+    glGetShaderiv = bryair_glGetShaderiv;
+    glGetShaderInfoLog = bryair_glGetShaderInfoLog;
+    glCreateProgram = bryair_glCreateProgram;
+    glDeleteProgram = bryair_glDeleteProgram;
+    glAttachShader = bryair_glAttachShader;
+    glLinkProgram = bryair_glLinkProgram;
+    glGetUniformLocation = bryair_glGetUniformLocation;
+    glUseProgram = bryair_glUseProgram;
+    glGetProgramiv = bryair_glGetProgramiv;
+    glGetProgramInfoLog = bryair_glGetProgramInfoLog;
+    glUniform1i = bryair_glUniform1i;
+    glUniform4f = bryair_glUniform4f;
+    glUniform4fv = bryair_glUniform4fv;
+    glUniform1f = bryair_glUniform1f;
+    glBindAttribLocation = bryair_glBindAttribLocation;
 #endif
 
     TRY(glGenBuffers, "glGenBuffersARB", "glGenBuffers");
@@ -431,10 +442,10 @@ static void load_extensions(void) {
     gdraw_real_vtxattrib =
         (gdraw_vtxattrib_fn)SDL_GL_GetProcAddress("glVertexAttribPointer");
 #if defined(__EMSCRIPTEN__)
-    gdraw_real_createshader = (gdraw_createshader_fn)glad_glCreateShader;
-    gdraw_real_shadersource = (gdraw_shadersource_fn)glad_glShaderSource;
-    gdraw_real_compileshader = (gdraw_compileshader_fn)glad_glCompileShader;
-    gdraw_real_linkprogram = (gdraw_linkprogram_fn)glad_glLinkProgram;
+    gdraw_real_createshader = bryair_glCreateShader;
+    gdraw_real_shadersource = bryair_glShaderSource;
+    gdraw_real_compileshader = bryair_glCompileShader;
+    gdraw_real_linkprogram = bryair_glLinkProgram;
 #else
     gdraw_real_createshader =
         (gdraw_createshader_fn)SDL_GL_GetProcAddress("glCreateShader");
@@ -450,7 +461,7 @@ static void load_extensions(void) {
     gdraw_real_texsubimage2d =
         (gdraw_texsubimage2d_fn)SDL_GL_GetProcAddress("glTexSubImage2D");
 #if defined(__EMSCRIPTEN__)
-    gdraw_real_useprogram = (gdraw_useprogram_fn)glad_glUseProgram;
+    gdraw_real_useprogram = bryair_glUseProgram;
 #else
     gdraw_real_useprogram =
         (gdraw_useprogram_fn)SDL_GL_GetProcAddress("glUseProgram");
@@ -510,20 +521,9 @@ static struct {
 static int gdraw_shader_type_count = 0;
 
 static GLenum gdraw_get_shader_type(GLuint shader) {
-    // Prefer the actual WebGL/OpenGL shader object type over our local tracker.
-    // This remains correct even if a handle was created through another loader
-    // path or the small tracking table has reached its limit.
-    if (shader) {
-        GLint type = 0;
-        glGetShaderiv(shader, GL_SHADER_TYPE, &type);
-        if (type == (GLint)GL_VERTEX_SHADER || type == (GLint)GL_FRAGMENT_SHADER)
-            return (GLenum)type;
-    }
-
     for (int i = 0; i < gdraw_shader_type_count; i++)
         if (gdraw_shader_types[i].handle == shader)
             return gdraw_shader_types[i].type;
-
     return GL_FRAGMENT_SHADER;
 }
 
@@ -842,13 +842,8 @@ static void hooked_glDrawElements(GLenum mode, GLsizei count, GLenum type,
 
 #define glDrawElements hooked_glDrawElements
 
-// Keep the desktop workaround for drivers that reject glUseProgram(0).
-// WebGL2 follows GLES 3.0 rules and permits binding program 0 directly.
+// dummy shader for glUseProgram(0) safety
 static void gdraw_UseProgramSafe(GLuint program) {
-#if defined(__EMSCRIPTEN__)
-    gdraw_real_useprogram(program);
-    return;
-#else
     if (!program) {
         if (!gdraw_null_program && gdraw_real_useprogram) {
             const char* vs =
@@ -872,7 +867,6 @@ static void gdraw_UseProgramSafe(GLuint program) {
         return;
     }
     gdraw_real_useprogram(program);
-#endif
 }
 
 #undef glUseProgram
