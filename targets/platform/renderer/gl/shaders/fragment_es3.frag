@@ -1,5 +1,4 @@
-R"GLSL(
-#version 300 es
+R"GLSL(#version 300 es
 precision mediump float;
 precision mediump int;
 
